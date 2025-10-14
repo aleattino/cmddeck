@@ -118,7 +118,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">2.0</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.0</span></span>
               <span className="text-gray-600">•</span>
               <span className="text-gray-400"><span className="text-green-400 font-bold">{totalCommands}+</span> commands</span>
             </div>
@@ -164,19 +164,13 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
               <p className="text-sm text-gray-400 mb-2">Links</p>
               <div className="flex flex-wrap gap-2">
                 <a
-                  href="https://github.com"
+                  href="https://github.com/aleattino/cmddeck"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-md transition-colors inline-flex items-center gap-1"
                 >
                   GitHub
                   <ExternalLink size={12} />
-                </a>
-                <a
-                  href="mailto:feedback@example.com"
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-md transition-colors"
-                >
-                  Feedback
                 </a>
               </div>
             </div>

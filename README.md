@@ -6,7 +6,7 @@ A modern, lightning-fast web app for browsing, searching, and copying Linux comm
 
 ![CmdDeck Banner](https://img.shields.io/badge/Made%20with-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-2.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.0-blue?style=for-the-badge)
 
 ---
 
@@ -31,7 +31,7 @@ A modern, lightning-fast web app for browsing, searching, and copying Linux comm
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/cmddeck.git
+git clone https://github.com/aleattino/cmddeck.git
 cd cmddeck
 
 # Install dependencies

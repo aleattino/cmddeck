@@ -1,6 +1,6 @@
 {
   "name": "cmddeck",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "description": "Your deck of ready-to-use Linux commands for Ubuntu and Fedora",
   "private": true,
   "type": "module",
