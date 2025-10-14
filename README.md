@@ -1,12 +1,19 @@
 # CmdDeck
 
-> 🎴 Your deck of ready-to-use Linux commands for Ubuntu and Fedora
+> 🎴 Your deck of ready-to-use Linux commands
 
 A modern, lightning-fast web app for browsing, searching, and copying Linux commands instantly. Built with React, Vite, and Tailwind CSS.
 
-![CmdDeck Banner](https://img.shields.io/badge/Made%20with-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-cmddeck.vercel.app-00C7B7?style=for-the-badge&logo=vercel&logoColor=white)](https://cmddeck.vercel.app/)
+![Made with React](https://img.shields.io/badge/Made%20with-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-1.0-blue?style=for-the-badge)
+
+---
+
+## 🌐 Live Demo
+
+**Try it now:** [https://cmddeck.vercel.app/](https://cmddeck.vercel.app/)
 
 ---
 
