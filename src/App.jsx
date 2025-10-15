@@ -250,9 +250,9 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">9. Contact Us</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">9. Contact</h3>
               <p>
-                If you have questions about this Privacy Policy, please contact us through our <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
+                If you have questions about this Privacy Policy, please contact the developer Alessandro Attino through the <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
               </p>
             </section>
           </div>
@@ -355,7 +355,7 @@ const CookiePolicyModal = ({ isOpen, onClose }) => {
             <section>
               <h3 className="text-green-400 font-semibold text-base mb-2">6. Contact</h3>
               <p>
-                Questions about our use of cookies? Contact us via our <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
+                Questions about cookies? Contact the developer Alessandro Attino via the <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
               </p>
             </section>
           </div>
