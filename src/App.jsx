@@ -133,7 +133,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.1</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.1.1</span></span>
               <span className="text-gray-600">•</span>
               <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
             </div>
@@ -670,28 +670,39 @@ const categoryIcons = {
 
 // Detect user's operating system
 const detectOS = () => {
-  const userAgent = window.navigator.userAgent.toLowerCase();
-  const platform = window.navigator.platform.toLowerCase();
+  const userAgent = window.navigator.userAgent;
+  const platform = window.navigator.platform;
+  const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K', 'darwin'];
+  const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'];
   
-  // Check for macOS
-  if (platform.includes('mac') || userAgent.includes('macintosh') || userAgent.includes('mac os')) {
+  // Check for macOS first (most reliable check)
+  if (macosPlatforms.some(p => platform.includes(p))) {
     return 'not-linux';
   }
   
   // Check for Windows
-  if (platform.includes('win') || userAgent.includes('windows')) {
+  if (windowsPlatforms.some(p => platform.includes(p))) {
     return 'not-linux';
   }
   
-  // Check if on Linux
-  const isLinux = userAgent.includes('linux') || platform.includes('linux');
+  // Check userAgent for additional macOS detection
+  if (userAgent.includes('Mac OS') || userAgent.includes('Macintosh')) {
+    return 'not-linux';
+  }
   
-  if (isLinux) {
+  // Check userAgent for Windows
+  if (userAgent.includes('Windows')) {
+    return 'not-linux';
+  }
+  
+  // Now check for Linux - must be after macOS/Windows checks
+  if (platform.includes('Linux') || userAgent.includes('Linux')) {
     // Detect specific Linux distro
-    if (userAgent.includes('ubuntu')) return 'ubuntu';
-    if (userAgent.includes('fedora') || userAgent.includes('red hat')) return 'fedora';
-    if (userAgent.includes('arch')) return 'arch';
-    if (userAgent.includes('debian')) return 'ubuntu'; // Debian uses apt like Ubuntu
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('ubuntu')) return 'ubuntu';
+    if (ua.includes('fedora') || ua.includes('red hat')) return 'fedora';
+    if (ua.includes('arch')) return 'arch';
+    if (ua.includes('debian')) return 'ubuntu'; // Debian uses apt like Ubuntu
     return 'generic'; // Generic Linux
   }
   
@@ -725,19 +736,30 @@ export default function App() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [detectedOS, setDetectedOS] = useState(() => {
-    const saved = localStorage.getItem('selectedOS');
-    if (saved && saved !== 'not-linux') return saved;
     const detected = detectOS();
-    // If not on Linux, default to ubuntu for better UX
-    return detected === 'not-linux' ? 'ubuntu' : detected;
+    const saved = localStorage.getItem('selectedOS');
+    
+    if (saved) {
+      return saved;
+    }
+    
+    // If not on Linux, keep 'not-linux' to show the warning
+    return detected;
   });
   const [showOSSelector, setShowOSSelector] = useState(false);
 
   // Handle OS selection change
   const handleOSChange = (os) => {
     setDetectedOS(os);
-    localStorage.setItem('selectedOS', os);
+    if (os !== 'not-linux') {
+      localStorage.setItem('selectedOS', os);
+    }
     setShowOSSelector(false);
+  };
+  
+  // Get the OS to use for commands (fallback to ubuntu if not-linux)
+  const getCommandOS = () => {
+    return detectedOS === 'not-linux' ? 'ubuntu' : detectedOS;
   };
 
   // Get all snippets with category info
@@ -863,7 +885,8 @@ export default function App() {
 
   // Handle palette selection
   const handlePaletteSelect = (snippet) => {
-    const commandToCopy = snippet.command || snippet.variants?.[detectedOS] || snippet.variants?.ubuntu;
+    const osForCommand = getCommandOS();
+    const commandToCopy = snippet.command || snippet.variants?.[osForCommand] || snippet.variants?.ubuntu;
     if (commandToCopy) {
       handleCopy(commandToCopy);
     }
@@ -1202,11 +1225,11 @@ export default function App() {
                         key={commandForCheck} 
                         snippet={snippet}
                         onCopy={handleCopy}
-                        isCopied={copiedCommand === (snippet.variants?.[detectedOS] || snippet.variants?.ubuntu || snippet.command)}
+                        isCopied={copiedCommand === (snippet.variants?.[getCommandOS()] || snippet.variants?.ubuntu || snippet.command)}
                         onToggleFavorite={toggleFavorite}
                         isFavorite={favorites.includes(commandForCheck)}
                         showCategory={['All', 'Favorites', 'Recent'].includes(selectedCategory)}
-                        detectedOS={detectedOS}
+                        detectedOS={getCommandOS()}
                       />
                     );
                   }

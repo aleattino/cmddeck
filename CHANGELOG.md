@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2025-10-15
+
+### 🐛 Fixed
+- **OS Detection** - Fixed macOS/Windows detection not showing "Not on Linux" correctly
+  - Improved platform detection with more reliable checks
+  - macOS and Windows now correctly detected before Linux checks
+  - Fixed localStorage caching causing incorrect OS display
+  - Removed debug console.log statements for production
+- **UI Display** - Fixed OS selector showing wrong distro for non-Linux systems
+  - Non-Linux users now see "Not on Linux - Select target" in yellow
+  - Commands still default to Ubuntu for better UX
+  - Manual selection properly saved to localStorage
+
+---
+
 ## [1.1.0] - 2025-10-15
 
 ### 🎉 Added
