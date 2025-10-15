@@ -28,7 +28,11 @@ import {
   AlertTriangle,
   AlertOctagon,
   Terminal,
-  AlertCircle
+  AlertCircle,
+  Cookie,
+  Shield,
+  X,
+  Menu
 } from 'lucide-react';
 import { snippetsData, packageManagementCommands } from './data/snippets';
 import { workflows } from './data/workflows';
@@ -105,6 +109,262 @@ const Toast = ({ message, isVisible }) => {
   );
 };
 
+// Cookie Consent Banner
+const CookieConsent = ({ isVisible, onAccept, onDecline }) => {
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-green-500/30 z-50 p-4 sm:p-6 shadow-2xl">
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3 flex-1">
+          <Cookie size={24} className="text-green-400 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="text-green-400 font-semibold mb-1">Cookie Consent</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              We use cookies and Google Analytics to improve your experience and understand how you use CmdDeck. 
+              By accepting, you agree to our use of cookies. 
+              <a href="#" onClick={(e) => { e.preventDefault(); }} className="text-green-400 hover:underline ml-1">Learn more</a>
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3 w-full sm:w-auto">
+          <button
+            onClick={onDecline}
+            className="flex-1 sm:flex-none px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md text-sm transition-colors"
+          >
+            Decline
+          </button>
+          <button
+            onClick={onAccept}
+            className="flex-1 sm:flex-none px-6 py-2 bg-green-500 hover:bg-green-600 text-black font-semibold rounded-md text-sm transition-colors"
+          >
+            Accept
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Privacy Policy Modal
+const PrivacyPolicyModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-3xl my-8 shadow-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Shield size={24} className="text-green-400" />
+            <h2 className="text-xl font-bold text-green-400">Privacy Policy</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-300 p-1"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6 overflow-y-auto">
+          <div className="text-gray-400 space-y-4 text-sm leading-relaxed">
+            <p className="text-gray-300">
+              <strong>Effective Date:</strong> October 15, 2025
+            </p>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">1. Introduction</h3>
+              <p>
+                CmdDeck ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, 
+                use, and safeguard your information when you use our web application.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">2. Information We Collect</h3>
+              <p className="mb-2"><strong>Local Storage Data:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>Favorite commands</li>
+                <li>Recently used commands</li>
+                <li>Selected operating system preference</li>
+                <li>Cookie consent preferences</li>
+              </ul>
+              <p className="mt-3 mb-2"><strong>Analytics Data (Google Analytics):</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>Page views and navigation patterns</li>
+                <li>Device type and browser information</li>
+                <li>General geographic location (country/city level)</li>
+                <li>Interaction with features and commands</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">3. How We Use Your Information</h3>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>To personalize your experience with saved preferences</li>
+                <li>To understand how users interact with CmdDeck</li>
+                <li>To improve our features and user interface</li>
+                <li>To analyze usage patterns and optimize performance</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">4. Data Storage and Security</h3>
+              <p>
+                All preference data is stored locally in your browser using localStorage. We do not store this data on our servers. 
+                Analytics data is processed by Google Analytics according to their privacy policy and data retention settings.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">5. Third-Party Services</h3>
+              <p>
+                We use Google Analytics to collect usage statistics. Google Analytics may use cookies and similar technologies. 
+                For more information, visit <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google's Privacy Policy</a>.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">6. Your Rights</h3>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>You can clear your local data at any time through your browser settings</li>
+                <li>You can opt-out of analytics by declining cookie consent</li>
+                <li>You can request deletion of any analytics data by contacting us</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">7. Children's Privacy</h3>
+              <p>
+                CmdDeck is not intended for users under 13 years of age. We do not knowingly collect personal information from children.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">8. Changes to This Policy</h3>
+              <p>
+                We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated effective date.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">9. Contact Us</h3>
+              <p>
+                If you have questions about this Privacy Policy, please contact us through our <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
+              </p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Cookie Policy Modal
+const CookiePolicyModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-3xl my-8 shadow-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Cookie size={24} className="text-green-400" />
+            <h2 className="text-xl font-bold text-green-400">Cookie Policy</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-300 p-1"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6 overflow-y-auto">
+          <div className="text-gray-400 space-y-4 text-sm leading-relaxed">
+            <p className="text-gray-300">
+              <strong>Effective Date:</strong> October 15, 2025
+            </p>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">1. What Are Cookies</h3>
+              <p>
+                Cookies are small text files that are stored on your device when you visit a website. They help websites remember 
+                your preferences and improve your experience.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">2. How We Use Cookies</h3>
+              <p className="mb-2">CmdDeck uses the following types of data storage:</p>
+              
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-3">
+                <h4 className="text-green-400 font-semibold mb-2">Essential Local Storage</h4>
+                <p className="mb-2">These are required for the app to function and cannot be disabled:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li><code className="text-green-400">cmddeckFavorites</code> - Your starred commands</li>
+                  <li><code className="text-green-400">cmddeckRecent</code> - Recently copied commands</li>
+                  <li><code className="text-green-400">selectedOS</code> - Your OS preference</li>
+                  <li><code className="text-green-400">cmddeckCookieConsent</code> - Your cookie choice</li>
+                </ul>
+              </div>
+
+              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                <h4 className="text-green-400 font-semibold mb-2">Analytics Cookies (Optional)</h4>
+                <p className="mb-2">Used only if you accept cookies:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li><code className="text-green-400">_ga</code> - Google Analytics identifier (2 years)</li>
+                  <li><code className="text-green-400">_ga_*</code> - Google Analytics session data (2 years)</li>
+                </ul>
+                <p className="mt-2 text-xs text-gray-500">
+                  These help us understand how users interact with CmdDeck to improve the experience.
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">3. Managing Cookies</h3>
+              <p className="mb-2">You have full control over cookies:</p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li><strong>Accept/Decline:</strong> Choose your preference in the cookie banner</li>
+                <li><strong>Browser Settings:</strong> Most browsers allow you to manage cookies in settings</li>
+                <li><strong>Clear Data:</strong> You can clear browser data at any time</li>
+                <li><strong>Change Mind:</strong> Clear your browser's localStorage to see the banner again</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">4. Third-Party Cookies</h3>
+              <p>
+                When you accept cookies, Google Analytics may set cookies on your device. These are governed by 
+                <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline ml-1">Google's Cookie Policy</a>.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">5. Updates to This Policy</h3>
+              <p>
+                We may update this Cookie Policy to reflect changes in technology or regulations. Check this page periodically for updates.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">6. Contact</h3>
+              <p>
+                Questions about our use of cookies? Contact us via our <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
+              </p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Info Modal component
 const InfoModal = ({ isOpen, onClose, totalCommands }) => {
   if (!isOpen) return null;
@@ -122,7 +382,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             onClick={onClose}
             className="text-gray-500 hover:text-gray-300 p-1"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 
@@ -133,7 +393,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.1.1</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.2.0</span></span>
               <span className="text-gray-600">•</span>
               <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
             </div>
@@ -733,8 +993,14 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [cookiePolicyModalOpen, setCookiePolicyModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [cookieConsentVisible, setCookieConsentVisible] = useState(() => {
+    const consent = localStorage.getItem('cmddeckCookieConsent');
+    return !consent; // Show banner if no consent stored
+  });
   const [detectedOS, setDetectedOS] = useState(() => {
     const detected = detectOS();
     const saved = localStorage.getItem('selectedOS');
@@ -747,6 +1013,7 @@ export default function App() {
     return detected;
   });
   const [showOSSelector, setShowOSSelector] = useState(false);
+  const [footerMenuOpen, setFooterMenuOpen] = useState(false);
 
   // Handle OS selection change
   const handleOSChange = (os) => {
@@ -843,6 +1110,27 @@ export default function App() {
     localStorage.setItem('favorites', JSON.stringify(newFavorites));
   };
 
+  // Cookie consent handlers
+  const handleCookieAccept = () => {
+    localStorage.setItem('cmddeckCookieConsent', 'accepted');
+    setCookieConsentVisible(false);
+    
+    // Enable Google Analytics
+    if (window.gtag) {
+      window.gtag('config', 'G-Y6ELJY9QCF', {
+        'anonymize_ip': false,
+        'storage': 'enabled'
+      });
+    }
+  };
+
+  const handleCookieDecline = () => {
+    localStorage.setItem('cmddeckCookieConsent', 'declined');
+    setCookieConsentVisible(false);
+    
+    // Keep GA disabled (already set in index.html)
+  };
+
   // Function to copy text
   const handleCopy = (commandToCopy) => {
     // Use a textarea trick for maximum compatibility
@@ -916,6 +1204,9 @@ export default function App() {
         setShowOSSelector(false);
         setWorkflowsOpen(false);
         setInfoModalOpen(false);
+        setPrivacyModalOpen(false);
+        setCookiePolicyModalOpen(false);
+        setFooterMenuOpen(false);
       }
     };
     
@@ -929,11 +1220,14 @@ export default function App() {
       if (showOSSelector && !e.target.closest('.os-selector-container')) {
         setShowOSSelector(false);
       }
+      if (footerMenuOpen && !e.target.closest('.footer-menu-container')) {
+        setFooterMenuOpen(false);
+      }
     };
     
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [showOSSelector]);
+  }, [showOSSelector, footerMenuOpen]);
 
   return (
     <div className="bg-[#0D1117] min-h-screen font-mono text-gray-300">
@@ -965,13 +1259,6 @@ export default function App() {
         onSelect={handlePaletteSelect}
         searchValue={paletteSearch}
         onSearchChange={setPaletteSearch}
-      />
-
-      {/* Info Modal */}
-      <InfoModal
-        isOpen={infoModalOpen}
-        onClose={() => setInfoModalOpen(false)}
-        totalCommands={allSnippets.length}
       />
       
       <div className="max-w-7xl mx-auto">
@@ -1283,14 +1570,75 @@ export default function App() {
 
       </div>
 
-      {/* Floating Info Button */}
-      <button
-        onClick={() => setInfoModalOpen(true)}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-2 sm:p-2.5 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-md text-gray-400 hover:text-green-400 hover:border-green-500/50 transition-colors z-40"
-        title="About CmdDeck"
-      >
-        <Info size={18} className="sm:w-5 sm:h-5" />
-      </button>
+      {/* Footer Menu */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 footer-menu-container">
+        {/* Menu Dropdown */}
+        {footerMenuOpen && (
+          <div className="absolute bottom-full right-0 mb-2 bg-gray-900/95 backdrop-blur-sm border border-green-500/30 rounded-lg shadow-2xl overflow-hidden min-w-[180px]">
+            <button
+              onClick={() => {
+                setInfoModalOpen(true);
+                setFooterMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-800 hover:text-green-400 transition-colors flex items-center gap-2 text-sm"
+            >
+              <Info size={16} />
+              About
+            </button>
+            <button
+              onClick={() => {
+                setPrivacyModalOpen(true);
+                setFooterMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-800 hover:text-green-400 transition-colors flex items-center gap-2 text-sm border-t border-gray-800"
+            >
+              <Shield size={16} />
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => {
+                setCookiePolicyModalOpen(true);
+                setFooterMenuOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-800 hover:text-green-400 transition-colors flex items-center gap-2 text-sm border-t border-gray-800"
+            >
+              <Cookie size={16} />
+              Cookie Policy
+            </button>
+          </div>
+        )}
+
+        {/* Menu Toggle Button */}
+        <button
+          onClick={() => setFooterMenuOpen(!footerMenuOpen)}
+          className="p-2 sm:p-2.5 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-md text-gray-400 hover:text-green-400 hover:border-green-500/50 transition-colors"
+          title="Menu"
+        >
+          <Menu size={18} className="sm:w-5 sm:h-5" />
+        </button>
+      </div>
+
+      {/* Modals */}
+      <InfoModal 
+        isOpen={infoModalOpen}
+        onClose={() => setInfoModalOpen(false)}
+        totalCommands={allSnippets.length}
+      />
+      <PrivacyPolicyModal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+      />
+      <CookiePolicyModal
+        isOpen={cookiePolicyModalOpen}
+        onClose={() => setCookiePolicyModalOpen(false)}
+      />
+
+      {/* Cookie Consent Banner */}
+      <CookieConsent
+        isVisible={cookieConsentVisible}
+        onAccept={handleCookieAccept}
+        onDecline={handleCookieDecline}
+      />
     </div>
   );
 }

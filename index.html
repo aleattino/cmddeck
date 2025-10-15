@@ -7,6 +7,26 @@
     <meta name="description" content="CmdDeck - Your deck of ready-to-use Linux commands. Browse, search, and copy 100+ commands instantly." />
     <meta name="theme-color" content="#0D1117" />
     <title>CmdDeck - Linux Command Reference</title>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y6ELJY9QCF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      
+      // Check if user has accepted cookies
+      const cookieConsent = localStorage.getItem('cmddeckCookieConsent');
+      if (cookieConsent === 'accepted') {
+        gtag('config', 'G-Y6ELJY9QCF');
+      } else {
+        // Disable GA by default until consent
+        gtag('config', 'G-Y6ELJY9QCF', {
+          'anonymize_ip': true,
+          'storage': 'none'
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

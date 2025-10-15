@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2025-10-15
+
+### 🎉 Added
+- **Google Analytics Integration** - Tracks usage patterns to improve UX
+  - Analytics ID: G-Y6ELJY9QCF
+  - Only active after user consent
+  - IP anonymization by default until consent
+- **GDPR Cookie Consent Banner** - Full compliance with privacy regulations
+  - Accept/Decline options
+  - Persistent preference storage
+  - Respects user choice for analytics
+- **Privacy Policy Modal** - Comprehensive privacy documentation
+  - Details on data collection and usage
+  - Third-party services disclosure
+  - User rights and contact information
+- **Cookie Policy Modal** - Transparent cookie usage information
+  - Essential vs optional cookies breakdown
+  - Management instructions
+  - Third-party cookie policies
+- **Footer Menu System** - Organized access to legal/info pages
+  - About CmdDeck
+  - Privacy Policy
+  - Cookie Policy
+  - Dropdown menu design with keyboard support (Esc to close)
+
+### 🔧 Improved
+- **Footer Navigation** - Replaced single info button with comprehensive menu
+- **Modal System** - Consistent close behavior with Esc key
+- **User Experience** - Clear consent flow on first visit
+- **Accessibility** - Keyboard navigation for all modals and menus
+
+### 📄 Legal
+- Added comprehensive Privacy Policy (effective Oct 15, 2025)
+- Added detailed Cookie Policy (effective Oct 15, 2025)
+- GDPR-compliant consent management
+- Transparent data collection practices
+
+---
+
 ## [1.1.1] - 2025-10-15
 
 ### 🐛 Fixed
