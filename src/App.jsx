@@ -24,9 +24,13 @@ import {
   Keyboard,
   ExternalLink,
   User,
-  Check
+  Check,
+  AlertTriangle,
+  AlertOctagon,
+  Terminal,
+  AlertCircle
 } from 'lucide-react';
-import { snippetsData } from './data/snippets';
+import { snippetsData, packageManagementCommands } from './data/snippets';
 import { workflows } from './data/workflows';
 
 // Custom logo components using real images
@@ -56,6 +60,17 @@ const FlatpakLogo = ({ size = 16, className = "" }) => (
   <img 
     src="/flatpak.svg" 
     alt="Flatpak"
+    width={size} 
+    height={size}
+    className={className}
+    style={{ display: 'inline-block' }}
+  />
+);
+
+const ArchLogo = ({ size = 16, className = "" }) => (
+  <img 
+    src="/128px-Arch_Linux__Crystal__icon.svg.png" 
+    alt="Arch Linux"
     width={size} 
     height={size}
     className={className}
@@ -118,9 +133,9 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.0</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.1</span></span>
               <span className="text-gray-600">•</span>
-              <span className="text-gray-400"><span className="text-green-400 font-bold">{totalCommands}+</span> commands</span>
+              <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
             </div>
           </div>
 
@@ -188,7 +203,8 @@ const workflowIcons = {
   Globe,
   Lock,
   Container,
-  Activity
+  Activity,
+  AlertCircle
 };
 
 // Workflows Modal component
@@ -392,9 +408,11 @@ const CommandPalette = ({ isOpen, onClose, snippets, onSelect, searchValue, onSe
         {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto">
           {snippets.length > 0 ? (
-            snippets.slice(0, 10).map((snippet, index) => (
+            snippets.slice(0, 10).map((snippet, index) => {
+              const snippetKey = snippet.command || snippet.variants?.ubuntu || `snippet-${index}`;
+              return (
               <button
-                key={snippet.command}
+                key={snippetKey}
                 onClick={() => handleSelect(snippet)}
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={`w-full text-left p-4 border-b border-gray-800 transition-all ${
@@ -405,9 +423,23 @@ const CommandPalette = ({ isOpen, onClose, snippets, onSelect, searchValue, onSe
                   <span className="text-green-400 font-semibold">
                     {snippet.title}
                   </span>
-                  <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded ml-2">
-                    {snippet.category}
-                  </span>
+                  <div className="flex items-center gap-2 ml-2">
+                    {snippet.dangerLevel === 'danger' && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded border border-red-500/50">
+                        <AlertOctagon size={10} />
+                        DANGER
+                      </span>
+                    )}
+                    {snippet.dangerLevel === 'caution' && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-400 bg-yellow-500/20 px-2 py-0.5 rounded border border-yellow-500/50">
+                        <AlertTriangle size={10} />
+                        CAUTION
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                      {snippet.category}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-gray-400 text-sm mb-2">{snippet.description}</p>
                 <div className="flex items-center justify-between gap-2">
@@ -415,7 +447,8 @@ const CommandPalette = ({ isOpen, onClose, snippets, onSelect, searchValue, onSe
                   <span className="text-xs text-gray-600 whitespace-nowrap">Click to copy</span>
                 </div>
               </button>
-            ))
+              );
+            })
           ) : (
             <div className="p-8 text-center text-gray-500">
               <Search className="mx-auto mb-2 opacity-50" size={32} />
@@ -438,44 +471,187 @@ const CommandPalette = ({ isOpen, onClose, snippets, onSelect, searchValue, onSe
   );
 };
 
-// Snippet card component
-const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory }) => (
-  <div className="bg-gray-900/50 border border-green-500/20 rounded-lg p-3 sm:p-4 flex flex-col justify-between transition-all hover:border-green-500/50 hover:bg-gray-900">
-    <div>
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="text-green-400 font-bold text-base sm:text-lg flex-1 pr-2">{snippet.title}</h3>
-        <button
-          onClick={() => onToggleFavorite(snippet.command)}
-          className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
-          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+// Package Management Card with distro variants
+const PackageManagementCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory, detectedOS }) => {
+  const [selectedDistro, setSelectedDistro] = React.useState(detectedOS);
+  
+  React.useEffect(() => {
+    setSelectedDistro(detectedOS);
+  }, [detectedOS]);
+  
+  const command = snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
+  const commandForFavorite = snippet.variants?.ubuntu || snippet.command; // Use ubuntu as base for favorites
+  
+  const getDangerBadge = (dangerLevel) => {
+    if (!dangerLevel) return null;
+    
+    if (dangerLevel === 'danger') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded border border-red-500/50">
+          <AlertOctagon size={12} />
+          DANGER
+        </span>
+      );
+    }
+    
+    if (dangerLevel === 'caution') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-400 bg-yellow-500/20 px-2 py-1 rounded border border-yellow-500/50">
+          <AlertTriangle size={12} />
+          CAUTION
+        </span>
+      );
+    }
+    
+    return null;
+  };
+
+  return (
+    <div className="bg-gray-900/50 border border-green-500/20 rounded-lg p-3 sm:p-4 flex flex-col justify-between transition-all hover:border-green-500/50 hover:bg-gray-900">
+      <div>
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="text-green-400 font-bold text-base sm:text-lg flex-1 pr-2">{snippet.title}</h3>
+          <button
+            onClick={() => onToggleFavorite(commandForFavorite)}
+            className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {showCategory && snippet.category && (
+            <span className="inline-block text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+              {snippet.category}
+            </span>
+          )}
+          {getDangerBadge(snippet.dangerLevel)}
+          {snippet.variants && (
+            <span className="inline-flex items-center gap-1 text-xs text-blue-400 bg-blue-500/20 px-2 py-1 rounded border border-blue-500/50">
+              <Monitor size={10} />
+              Multi-distro
+            </span>
+          )}
+        </div>
+        <p className="text-gray-400 text-xs sm:text-sm mb-3 leading-relaxed">{snippet.description}</p>
+        
+        {/* Distro Tabs */}
+        {snippet.variants && (
+          <div className="flex gap-1 mb-3 flex-wrap">
+            <button
+              onClick={() => setSelectedDistro('ubuntu')}
+              className={`px-3 py-1 text-xs rounded transition-colors ${
+                selectedDistro === 'ubuntu'
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
+                  : 'bg-gray-800 text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Ubuntu/Debian
+            </button>
+            <button
+              onClick={() => setSelectedDistro('fedora')}
+              className={`px-3 py-1 text-xs rounded transition-colors ${
+                selectedDistro === 'fedora'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                  : 'bg-gray-800 text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Fedora/RHEL
+            </button>
+            <button
+              onClick={() => setSelectedDistro('arch')}
+              className={`px-3 py-1 text-xs rounded transition-colors ${
+                selectedDistro === 'arch'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                  : 'bg-gray-800 text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Arch
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
+        <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{command}</code>
+        <button 
+          onClick={() => onCopy(command)}
+          className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
         >
-          <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
+          {isCopied ? '✓' : 'Copy'}
         </button>
       </div>
-      {showCategory && snippet.category && (
-        <span className="inline-block text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded mb-2">
-          {snippet.category}
+    </div>
+  );
+};
+
+// Snippet card component
+const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory }) => {
+  const getDangerBadge = (dangerLevel) => {
+    if (!dangerLevel) return null;
+    
+    if (dangerLevel === 'danger') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded border border-red-500/50">
+          <AlertOctagon size={12} />
+          DANGER
         </span>
-      )}
-      <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed">{snippet.description}</p>
+      );
+    }
+    
+    if (dangerLevel === 'caution') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-400 bg-yellow-500/20 px-2 py-1 rounded border border-yellow-500/50">
+          <AlertTriangle size={12} />
+          CAUTION
+        </span>
+      );
+    }
+    
+    return null;
+  };
+
+  return (
+    <div className="bg-gray-900/50 border border-green-500/20 rounded-lg p-3 sm:p-4 flex flex-col justify-between transition-all hover:border-green-500/50 hover:bg-gray-900">
+      <div>
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="text-green-400 font-bold text-base sm:text-lg flex-1 pr-2">{snippet.title}</h3>
+          <button
+            onClick={() => onToggleFavorite(snippet.command)}
+            className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {showCategory && snippet.category && (
+            <span className="inline-block text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+              {snippet.category}
+            </span>
+          )}
+          {getDangerBadge(snippet.dangerLevel)}
+        </div>
+        <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed">{snippet.description}</p>
+      </div>
+      <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
+        <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{snippet.command}</code>
+        <button 
+          onClick={() => onCopy(snippet.command)}
+          className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
+        >
+          {isCopied ? '✓' : 'Copy'}
+        </button>
+      </div>
     </div>
-    <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
-      <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{snippet.command}</code>
-      <button 
-        onClick={() => onCopy(snippet.command)}
-        className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
-      >
-        {isCopied ? '✓' : 'Copy'}
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 // Category icons mapping - Minimal Lucide icons + custom logos
 const categoryIcons = {
   "All": CommandIcon,
   "Favorites": Star,
   "Recent": Clock,
+  "Package Management": Box,
   "System Info": Monitor,
   "Files & Folders": Folder,
   "Search & Find": Search,
@@ -488,7 +664,39 @@ const categoryIcons = {
   "System Logs": FileStack,
   "Flatpak": FlatpakLogo,         // Custom Flatpak logo
   "Ubuntu Specific": UbuntuLogo,  // Custom Ubuntu logo
-  "Fedora Specific": FedoraLogo   // Custom Fedora logo
+  "Fedora Specific": FedoraLogo,  // Custom Fedora logo
+  "Arch Specific": ArchLogo       // Custom Arch logo
+};
+
+// Detect user's operating system
+const detectOS = () => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const platform = window.navigator.platform.toLowerCase();
+  
+  // Check for macOS
+  if (platform.includes('mac') || userAgent.includes('macintosh') || userAgent.includes('mac os')) {
+    return 'not-linux';
+  }
+  
+  // Check for Windows
+  if (platform.includes('win') || userAgent.includes('windows')) {
+    return 'not-linux';
+  }
+  
+  // Check if on Linux
+  const isLinux = userAgent.includes('linux') || platform.includes('linux');
+  
+  if (isLinux) {
+    // Detect specific Linux distro
+    if (userAgent.includes('ubuntu')) return 'ubuntu';
+    if (userAgent.includes('fedora') || userAgent.includes('red hat')) return 'fedora';
+    if (userAgent.includes('arch')) return 'arch';
+    if (userAgent.includes('debian')) return 'ubuntu'; // Debian uses apt like Ubuntu
+    return 'generic'; // Generic Linux
+  }
+  
+  // Fallback: if we can't detect, assume not on Linux
+  return 'not-linux';
 };
 
 export default function App() {
@@ -516,6 +724,21 @@ export default function App() {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [detectedOS, setDetectedOS] = useState(() => {
+    const saved = localStorage.getItem('selectedOS');
+    if (saved && saved !== 'not-linux') return saved;
+    const detected = detectOS();
+    // If not on Linux, default to ubuntu for better UX
+    return detected === 'not-linux' ? 'ubuntu' : detected;
+  });
+  const [showOSSelector, setShowOSSelector] = useState(false);
+
+  // Handle OS selection change
+  const handleOSChange = (os) => {
+    setDetectedOS(os);
+    localStorage.setItem('selectedOS', os);
+    setShowOSSelector(false);
+  };
 
   // Get all snippets with category info
   const allSnippets = useMemo(() => {
@@ -546,21 +769,33 @@ export default function App() {
     if (selectedCategory === 'All') {
       snippets = allSnippets;
     } else if (selectedCategory === 'Favorites') {
-      snippets = allSnippets.filter(s => favorites.includes(s.command));
+      snippets = allSnippets.filter(s => {
+        const cmd = s.command || s.variants?.ubuntu;
+        return cmd && favorites.includes(cmd);
+      });
     } else if (selectedCategory === 'Recent') {
-      snippets = allSnippets.filter(s => recentCommands.includes(s.command))
-        .sort((a, b) => recentCommands.indexOf(a.command) - recentCommands.indexOf(b.command));
+      snippets = allSnippets.filter(s => {
+        const cmd = s.command || s.variants?.ubuntu;
+        return cmd && recentCommands.includes(cmd);
+      }).sort((a, b) => {
+        const cmdA = a.command || a.variants?.ubuntu;
+        const cmdB = b.command || b.variants?.ubuntu;
+        return recentCommands.indexOf(cmdA) - recentCommands.indexOf(cmdB);
+      });
     } else {
       snippets = allSnippets.filter(s => s.category === selectedCategory);
     }
     
     // Apply search filter
     if (searchQuery) {
-      snippets = snippets.filter(s => 
-        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.command.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      snippets = snippets.filter(s => {
+        const searchableCommand = s.command || s.variants?.ubuntu || '';
+        return (
+          s.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          searchableCommand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
     }
     
     return snippets;
@@ -616,40 +851,66 @@ export default function App() {
   // Palette filtered snippets
   const paletteSnippets = useMemo(() => {
     if (!paletteSearch) return allSnippets.slice(0, 50);
-    return allSnippets.filter(s =>
-      s.title.toLowerCase().includes(paletteSearch.toLowerCase()) ||
-      s.command.toLowerCase().includes(paletteSearch.toLowerCase()) ||
-      s.description.toLowerCase().includes(paletteSearch.toLowerCase())
-    );
+    return allSnippets.filter(s => {
+      const searchableCommand = s.command || s.variants?.ubuntu || '';
+      return (
+        s.title?.toLowerCase().includes(paletteSearch.toLowerCase()) ||
+        searchableCommand.toLowerCase().includes(paletteSearch.toLowerCase()) ||
+        s.description?.toLowerCase().includes(paletteSearch.toLowerCase())
+      );
+    });
   }, [paletteSearch, allSnippets]);
 
   // Handle palette selection
   const handlePaletteSelect = (snippet) => {
-    handleCopy(snippet.command);
+    const commandToCopy = snippet.command || snippet.variants?.[detectedOS] || snippet.variants?.ubuntu;
+    if (commandToCopy) {
+      handleCopy(commandToCopy);
+    }
     // Don't close immediately - let CommandPalette handle the feedback and timing
   };
 
   // Keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ctrl+K or Cmd+K or / for command palette
+      // Ctrl+K or Cmd+K to open command palette
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        setCommandPaletteOpen(true);
+        setCommandPaletteOpen(prev => !prev);
+        return;
       }
+      
+      // / for command palette (only when not in input)
       if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
         e.preventDefault();
         setCommandPaletteOpen(true);
+        return;
       }
-      // Escape to close
+      
+      // Escape to close everything
       if (e.key === 'Escape') {
         setCommandPaletteOpen(false);
+        setShowOSSelector(false);
+        setWorkflowsOpen(false);
+        setInfoModalOpen(false);
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Close OS selector when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showOSSelector && !e.target.closest('.os-selector-container')) {
+        setShowOSSelector(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showOSSelector]);
 
   return (
     <div className="bg-[#0D1117] min-h-screen font-mono text-gray-300">
@@ -699,6 +960,68 @@ export default function App() {
             <BlinkingCursor />
           </h1>
           <p className="text-gray-500 mt-2 text-sm sm:text-base">Your deck of ready-to-use Linux commands.</p>
+          
+          {/* OS Selector */}
+          <div className="mt-4 flex items-center justify-center">
+            <div className="relative os-selector-container">
+              <button
+                onClick={() => setShowOSSelector(!showOSSelector)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-700 rounded-md text-sm text-gray-400 hover:border-green-500/50 hover:text-green-400 transition-colors"
+              >
+                <Monitor size={16} />
+                <span>System: </span>
+                <span className={`font-semibold ${detectedOS === 'not-linux' ? 'text-yellow-400' : 'text-green-400'}`}>
+                  {detectedOS === 'ubuntu' ? 'Ubuntu/Debian' :
+                   detectedOS === 'fedora' ? 'Fedora/RHEL' :
+                   detectedOS === 'arch' ? 'Arch Linux' :
+                   detectedOS === 'not-linux' ? 'Not on Linux - Select target' :
+                   'Generic Linux'}
+                </span>
+                <span className="text-gray-600">▼</span>
+              </button>
+              
+              {showOSSelector && (
+                <div className="absolute top-full mt-2 left-0 right-0 bg-gray-900 border border-gray-700 rounded-md shadow-xl z-50 min-w-[220px]">
+                  <button
+                    onClick={() => handleOSChange('ubuntu')}
+                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 border-b border-gray-800 ${
+                      detectedOS === 'ubuntu' ? 'text-orange-400 bg-orange-500/10' : 'text-gray-400'
+                    }`}
+                  >
+                    <UbuntuLogo size={16} />
+                    Ubuntu/Debian
+                  </button>
+                  <button
+                    onClick={() => handleOSChange('fedora')}
+                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 border-b border-gray-800 ${
+                      detectedOS === 'fedora' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-400'
+                    }`}
+                  >
+                    <FedoraLogo size={16} />
+                    Fedora/RHEL
+                  </button>
+                  <button
+                    onClick={() => handleOSChange('arch')}
+                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 border-b border-gray-800 ${
+                      detectedOS === 'arch' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-400'
+                    }`}
+                  >
+                    <ArchLogo size={16} />
+                    Arch Linux
+                  </button>
+                  <button
+                    onClick={() => handleOSChange('generic')}
+                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 ${
+                      detectedOS === 'generic' ? 'text-green-400 bg-green-500/10' : 'text-gray-400'
+                    }`}
+                  >
+                    <Terminal size={16} />
+                    Generic Linux
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
           
           {/* Action Buttons */}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
@@ -870,17 +1193,37 @@ export default function App() {
             {filteredSnippets.length > 0 ? (
                 <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {displayedSnippets.map(snippet => (
+                {displayedSnippets.map(snippet => {
+                  // Use PackageManagementCard for commands with variants
+                  if (snippet.variants) {
+                    const commandForCheck = snippet.variants.ubuntu || snippet.command;
+                    return (
+                      <PackageManagementCard 
+                        key={commandForCheck} 
+                        snippet={snippet}
+                        onCopy={handleCopy}
+                        isCopied={copiedCommand === (snippet.variants?.[detectedOS] || snippet.variants?.ubuntu || snippet.command)}
+                        onToggleFavorite={toggleFavorite}
+                        isFavorite={favorites.includes(commandForCheck)}
+                        showCategory={['All', 'Favorites', 'Recent'].includes(selectedCategory)}
+                        detectedOS={detectedOS}
+                      />
+                    );
+                  }
+                  
+                  // Use regular SnippetCard for normal commands
+                  return (
                     <SnippetCard 
-                    key={snippet.command} 
-                    snippet={snippet}
-                    onCopy={handleCopy}
-                    isCopied={copiedCommand === snippet.command}
-                    onToggleFavorite={toggleFavorite}
-                    isFavorite={favorites.includes(snippet.command)}
-                    showCategory={['All', 'Favorites', 'Recent'].includes(selectedCategory)}
+                      key={snippet.command} 
+                      snippet={snippet}
+                      onCopy={handleCopy}
+                      isCopied={copiedCommand === snippet.command}
+                      onToggleFavorite={toggleFavorite}
+                      isFavorite={favorites.includes(snippet.command)}
+                      showCategory={['All', 'Favorites', 'Recent'].includes(selectedCategory)}
                     />
-                ))}
+                  );
+                })}
                     </div>
 
                 {/* Load More Button */}

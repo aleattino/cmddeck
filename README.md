@@ -7,7 +7,7 @@ A modern, lightning-fast web app for browsing, searching, and copying Linux comm
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-cmddeck.vercel.app-00C7B7?style=for-the-badge&logo=vercel&logoColor=white)](https://cmddeck.vercel.app/)
 ![Made with React](https://img.shields.io/badge/Made%20with-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.1-blue?style=for-the-badge)
 
 ---
 
@@ -19,16 +19,19 @@ A modern, lightning-fast web app for browsing, searching, and copying Linux comm
 
 ## ✨ Features
 
-- 🎯 **100+ Pre-loaded Commands** - Organized in 15+ categories
+- 🎯 **130+ Pre-loaded Commands** - Organized in 15+ categories
 - 🔍 **Instant Search** - Quick command palette (Ctrl+K or /)
 - ⭐ **Favorites & Recent** - Save your most-used commands
-- 📚 **Command Workflows** - Step-by-step guides for complex tasks
+- 📚 **11 Command Workflows** - Step-by-step guides for complex tasks
 - 🎨 **Beautiful UI** - Modern terminal-inspired design
 - 📱 **Fully Responsive** - Works perfectly on mobile, tablet, and desktop
 - 🚀 **Lightning Fast** - Pure frontend, no backend needed
 - 🌓 **Terminal Theme** - Easy on the eyes with dark UI
 - 📋 **One-Click Copy** - Copy any command instantly to clipboard
-- 🐧 **Multi-Distro** - Ubuntu, Fedora, and universal Linux commands
+- 🐧 **Multi-Distro** - Ubuntu, Fedora, Arch with smart tabs
+- 🖥️ **OS Detection** - Automatically detects your system
+- ⚠️ **Safety Badges** - Visual warnings for dangerous commands
+- 📦 **Package Management** - Multi-distro package commands with variants
 
 ---
 
@@ -276,8 +279,9 @@ Built for Linux users who:
 
 ## 📊 Stats
 
-- **100+ Commands** across 15+ categories
-- **10+ Workflows** for common tasks
+- **130+ Commands** across 15+ categories
+- **11 Workflows** for common tasks
+- **Multi-Distro Support** - Ubuntu, Fedora, Arch
 - **Pure Frontend** - No server required
 - **Offline Ready** - After first load
 - **0 Dependencies** at runtime (all bundled)

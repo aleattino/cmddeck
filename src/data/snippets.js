@@ -1,4 +1,81 @@
+// Package Management commands with distro variants
+export const packageManagementCommands = [
+  {
+    title: "Update package list",
+    description: "Refreshes the list of available software packages from repositories. Always run this before installing or upgrading software to ensure you get the latest versions.",
+    variants: {
+      ubuntu: "sudo apt update",
+      fedora: "sudo dnf check-update",
+      arch: "sudo pacman -Sy"
+    }
+  },
+  {
+    title: "Upgrade all software",
+    description: "Updates all installed packages to their latest available versions. This keeps your system secure and up-to-date with bug fixes and new features.",
+    variants: {
+      ubuntu: "sudo apt upgrade -y",
+      fedora: "sudo dnf upgrade -y",
+      arch: "sudo pacman -Syu"
+    }
+  },
+  {
+    title: "Install a package",
+    description: "Installs new software from your distribution's repositories. Replace 'package-name' with the actual name of the program you want to install.",
+    variants: {
+      ubuntu: "sudo apt install package-name -y",
+      fedora: "sudo dnf install package-name -y",
+      arch: "sudo pacman -S package-name"
+    }
+  },
+  {
+    title: "Remove a package",
+    description: "Uninstalls software from your system but keeps configuration files in case you want to reinstall later.",
+    variants: {
+      ubuntu: "sudo apt remove package-name",
+      fedora: "sudo dnf remove package-name",
+      arch: "sudo pacman -R package-name"
+    }
+  },
+  {
+    title: "Search for packages",
+    description: "Searches available packages matching a keyword. Useful when you know what you want but don't know the exact package name.",
+    variants: {
+      ubuntu: "apt search keyword",
+      fedora: "dnf search keyword",
+      arch: "pacman -Ss keyword"
+    }
+  },
+  {
+    title: "Show package information",
+    description: "Displays detailed information about a package including version, size, dependencies, and description before installing it.",
+    variants: {
+      ubuntu: "apt show package-name",
+      fedora: "dnf info package-name",
+      arch: "pacman -Si package-name"
+    }
+  },
+  {
+    title: "Clean package cache",
+    description: "Removes downloaded package files from cache to free up disk space. Safe to run as packages can be re-downloaded if needed.",
+    variants: {
+      ubuntu: "sudo apt clean && sudo apt autoclean",
+      fedora: "sudo dnf clean all",
+      arch: "sudo pacman -Sc"
+    }
+  },
+  {
+    title: "Remove unused packages",
+    description: "Removes packages that were automatically installed as dependencies but are no longer needed. Helps keep system clean and saves disk space.",
+    variants: {
+      ubuntu: "sudo apt autoremove -y",
+      fedora: "sudo dnf autoremove -y",
+      arch: "sudo pacman -Qdtq | sudo pacman -Rs -"
+    }
+  }
+];
+
 export const snippetsData = {
+  "Package Management": packageManagementCommands,
   "System Info": [
     {
       title: "Show system information",
@@ -17,17 +94,17 @@ export const snippetsData = {
     },
     {
       title: "Show my user details",
-      description: "Displays your user ID (UID) and group memberships.",
+      description: "Displays your user ID (UID), group ID (GID), and all group memberships. Useful for checking permissions and troubleshooting access issues.",
       command: "id"
     },
     {
       title: "Who's logged in?",
-      description: "Shows all users currently logged into the system.",
+      description: "Shows all users currently logged into the system, including their terminal and login time. Useful for checking active sessions on multi-user systems.",
       command: "who"
     },
     {
       title: "Computer name",
-      description: "Shows your computer's network name (hostname).",
+      description: "Shows your computer's network name (hostname). This is the name other computers see when you're on a network.",
       command: "hostname"
     },
     {
@@ -85,23 +162,25 @@ export const snippetsData = {
     {
       title: "Delete file",
       description: "Permanently deletes a file. Be careful, there's no trash bin!",
-      command: "rm filename.txt"
+      command: "rm filename.txt",
+      dangerLevel: "caution"
     },
     {
       title: "Delete folder",
-      description: "Deletes a directory and everything inside it. Use with extreme caution!",
-      command: "rm -rf folder-name/"
+      description: "⚠️ DANGER: Deletes a directory and everything inside it recursively WITHOUT asking for confirmation. This action is irreversible!",
+      command: "rm -rf folder-name/",
+      dangerLevel: "danger"
     },
     {
       title: "Make file executable",
-      description: "Makes a script file runnable. Essential for shell scripts!",
+      description: "Makes a script file runnable by adding execute permissions. Essential for shell scripts and programs you want to run directly (e.g., ./script.sh).",
       command: "chmod +x script.sh"
     }
   ],
   "Search & Find": [
     {
       title: "Find files by name",
-      description: "Searches for files matching a pattern. Great for finding lost files!",
+      description: "Searches for files matching a pattern in your home directory and subdirectories. Use * as wildcard (e.g., *.txt finds all text files). Case-sensitive by default.",
       command: 'find ~ -name "*.txt"'
     },
     {
@@ -116,24 +195,24 @@ export const snippetsData = {
     },
     {
       title: "Search text in files",
-      description: "Searches for text inside all files in current directory and subdirectories.",
+      description: "Recursively searches for text inside all files in current directory and subdirectories. Perfect for finding specific code, configuration values, or text content across multiple files.",
       command: 'grep -r "search text" .'
     },
     {
       title: "Search (case-insensitive)",
-      description: "Searches for text ignoring uppercase/lowercase differences.",
+      description: "Recursively searches for text ignoring uppercase/lowercase differences. Useful when you're not sure about capitalization (finds 'Error', 'ERROR', and 'error').",
       command: 'grep -ri "search text" .'
     },
     {
       title: "Quick file search",
-      description: "Super fast file search using pre-built database. Run 'sudo updatedb' first!",
+      description: "Super fast file search using pre-built database. Much faster than find but requires running 'sudo updatedb' first to index the filesystem. Database typically updates daily via cron.",
       command: "locate filename"
     }
   ],
   "View & Edit Files": [
     {
       title: "View file content",
-      description: "Displays the entire content of a text file in the terminal.",
+      description: "Displays the entire content of a text file in the terminal. Good for small files; for large files use 'less' instead to paginate.",
       command: "cat filename.txt"
     },
     {
@@ -163,19 +242,19 @@ export const snippetsData = {
     },
     {
       title: "Create or append text",
-      description: "Adds a line of text to a file. Creates file if it doesn't exist.",
+      description: "Adds a line of text to the end of a file. Creates file if it doesn't exist. Note: Use >> to append, > will overwrite the entire file!",
       command: 'echo "Hello World" >> filename.txt'
     },
     {
       title: "Count lines in file",
-      description: "Counts lines, words, and characters in a file.",
+      description: "Counts and displays the number of lines in a file. Remove -l flag to also count words and characters. Useful for log analysis and code metrics.",
       command: "wc -l filename.txt"
     }
   ],
   "Processes & Performance": [
     {
       title: "Show all processes",
-      description: "Lists all running programs and their resource usage.",
+      description: "Lists all running programs and their resource usage including CPU, memory, user, and command. Use with grep to find specific processes (e.g., ps aux | grep firefox).",
       command: "ps aux"
     },
     {
@@ -185,18 +264,20 @@ export const snippetsData = {
     },
     {
       title: "Better process monitor",
-      description: "Htop is like top but prettier and easier to use. Must be installed first.",
+      description: "Htop is an enhanced process viewer with colors, mouse support, and easier navigation than 'top'. Shows CPU, memory, swap usage graphically. Must be installed separately (sudo apt install htop).",
       command: "htop"
     },
     {
       title: "Kill a process",
-      description: "Forcefully stops a running process. Replace 1234 with actual Process ID.",
-      command: "kill -9 1234"
+      description: "Forcefully terminates a running process immediately. Replace 1234 with actual Process ID. The process won't have time to save data or clean up.",
+      command: "kill -9 1234",
+      dangerLevel: "caution"
     },
     {
       title: "Kill by name",
-      description: "Stops all processes with a specific name. Use carefully!",
-      command: "killall firefox"
+      description: "Stops all processes matching the name. This can terminate multiple processes at once, so verify first with 'ps aux | grep name'.",
+      command: "killall firefox",
+      dangerLevel: "caution"
     },
     {
       title: "Check memory usage",
@@ -210,39 +291,39 @@ export const snippetsData = {
     },
     {
       title: "Folder size",
-      description: "Shows how much space a folder is taking up.",
+      description: "Shows how much disk space a folder and all its contents are using. The -s flag summarizes (shows total only), -h makes it human-readable (KB, MB, GB).",
       command: "du -sh /path/to/folder"
     },
     {
       title: "Top 10 largest folders",
-      description: "Finds the biggest space hogs on your system. Great for cleanup!",
+      description: "Finds and displays the 10 largest folders in root directory, sorted by size. Perfect for identifying what's eating up disk space. The 2>/dev/null hides permission errors.",
       command: "du -sh /* 2>/dev/null | sort -rh | head -10"
     }
   ],
   "Network": [
     {
       title: "Test internet connection",
-      description: "Sends 4 packets to Google to check if internet is working and speed.",
+      description: "Sends 4 test packets to Google to check if internet is working. Shows response time (latency) in milliseconds and packet loss. Lower latency is better (good: <50ms, ok: 50-100ms, slow: >100ms).",
       command: "ping -c 4 google.com"
     },
     {
       title: "Show my IP address",
-      description: "Displays all network interfaces and their IP addresses.",
+      description: "Displays all network interfaces and their IP addresses. Look for 'inet' for IPv4 addresses. Your local IP typically starts with 192.168, 10., or 172.16-31.",
       command: "ip addr show"
     },
     {
       title: "What's using the network?",
-      description: "Shows all active network connections and listening ports.",
+      description: "Shows all active network connections and listening ports. Displays TCP (-t) and UDP (-u) connections in numeric format (-n) for all listening (-l) ports. Useful for finding what services are running.",
       command: "ss -tuln"
     },
     {
       title: "Download a file",
-      description: "Downloads a file from the internet. Simple and reliable.",
+      description: "Downloads a file from the internet and saves it to current directory. Shows progress bar and download speed. Can resume interrupted downloads with -c flag.",
       command: "wget https://example.com/file.zip"
     },
     {
       title: "Download with curl",
-      description: "Alternative download tool, often pre-installed on systems.",
+      description: "Alternative download tool that's often pre-installed on systems. The -O flag saves file with original name. More versatile than wget for API calls and HTTP requests.",
       command: "curl -O https://example.com/file.zip"
     },
     {
@@ -252,12 +333,12 @@ export const snippetsData = {
     },
     {
       title: "DNS lookup",
-      description: "Finds the IP address of a website.",
+      description: "Finds the IP address of a domain name by querying DNS servers. Useful for troubleshooting DNS issues or checking if a domain is resolving correctly.",
       command: "nslookup google.com"
     },
     {
       title: "Trace network path",
-      description: "Shows the route packets take to reach a destination. Good for diagnosing issues.",
+      description: "Shows each hop (router) packets take to reach a destination with response times. Helps identify where network slowdowns or failures occur. Each line is one router along the path.",
       command: "traceroute google.com"
     }
   ],
@@ -316,121 +397,123 @@ export const snippetsData = {
     },
     {
       title: "Switch to another user",
-      description: "Logs in as a different user. You'll need their password.",
+      description: "Logs in as a different user account. You'll need their password. The '-' flag loads that user's environment variables and settings.",
       command: "su - username"
     },
     {
       title: "Run command as admin",
-      description: "Executes a command with administrator (root) privileges.",
+      description: "Executes a command with administrator (root) privileges. You'll be prompted for your password. Required for system-level changes like installing software or editing protected files.",
       command: "sudo command-here"
     },
     {
       title: "Become root user",
-      description: "Switches to superuser mode. Be very careful - you have unlimited power!",
-      command: "sudo su -"
+      description: "⚠️ DANGER: Switches to superuser mode with unlimited system access. Any command you run can permanently damage your system. Use only when absolutely necessary!",
+      command: "sudo su -",
+      dangerLevel: "danger"
     },
     {
       title: "What groups am I in?",
-      description: "Shows all user groups you belong to.",
+      description: "Shows all user groups you belong to. Groups determine what files and resources you can access. Common groups include sudo (admin access), www-data (web server), docker, etc.",
       command: "groups"
     },
     {
       title: "Change file ownership",
-      description: "Changes who owns a file. Usually requires sudo.",
-      command: "sudo chown username:groupname filename"
+      description: "Changes who owns a file. Can affect file accessibility. Usually requires sudo. Make sure you understand ownership before changing it.",
+      command: "sudo chown username:groupname filename",
+      dangerLevel: "caution"
     },
     {
       title: "Make file read-only",
-      description: "Sets file permissions so only owner can write, everyone can read.",
+      description: "Sets file permissions so only owner can write, everyone can read. The 644 means: owner (6=rw-), group (4=r--), others (4=r--). Standard for most files.",
       command: "chmod 644 filename"
     },
     {
       title: "Make file private",
-      description: "Makes file readable and writable only by you.",
+      description: "Makes file readable and writable only by you, nobody else can even view it. The 600 means: owner (6=rw-), group (0=---), others (0=---). Good for sensitive data like SSH keys.",
       command: "chmod 600 filename"
     }
   ],
   "System Services": [
     {
       title: "Start a service",
-      description: "Starts a system service (like web server, database, etc.).",
+      description: "Starts a system service (like web server, database, etc.). The service will run until stopped or system reboots. Common services: nginx, apache2, mysql, postgresql, ssh.",
       command: "sudo systemctl start service-name"
     },
     {
       title: "Stop a service",
-      description: "Stops a running service.",
+      description: "Stops a running service gracefully, allowing it to shut down properly and save data. The service won't restart automatically unless enabled to start on boot.",
       command: "sudo systemctl stop service-name"
     },
     {
       title: "Restart a service",
-      description: "Stops and starts a service. Useful after config changes.",
+      description: "Stops and starts a service in one command. Essential after config changes to apply new settings. Briefly interrupts the service.",
       command: "sudo systemctl restart service-name"
     },
     {
       title: "Check service status",
-      description: "Shows if a service is running and displays recent log messages.",
+      description: "Shows if a service is running, crashed, or stopped, along with recent log messages and resource usage. Green 'active (running)' means it's working properly.",
       command: "systemctl status service-name"
     },
     {
       title: "Enable service at boot",
-      description: "Makes a service start automatically when system boots up.",
+      description: "Makes a service start automatically when system boots up. Doesn't start it now - use 'start' for that. Essential for servers that need services running after reboot.",
       command: "sudo systemctl enable service-name"
     },
     {
       title: "Disable service at boot",
-      description: "Prevents a service from starting automatically.",
+      description: "Prevents a service from starting automatically on boot. The service keeps running now but won't start after next reboot. Useful for disabling unwanted services.",
       command: "sudo systemctl disable service-name"
     },
     {
       title: "List all services",
-      description: "Shows all active system services and their status.",
+      description: "Shows all active system services and their status (loaded, running, failed, etc.). Use to see what's running on your system or find service names.",
       command: "systemctl list-units --type=service"
     },
     {
       title: "View service logs",
-      description: "Shows detailed logs for a specific service.",
+      description: "Shows detailed logs for a specific service including errors, warnings, and status messages. Useful for troubleshooting why a service failed or isn't working correctly.",
       command: "journalctl -u service-name"
     },
     {
       title: "Follow service logs",
-      description: "Watches service logs in real-time as new entries appear.",
+      description: "Watches service logs in real-time as new entries appear (like 'tail -f'). Perfect for monitoring a service during testing or debugging. Press Ctrl+C to stop.",
       command: "journalctl -u service-name -f"
     }
   ],
   "System Logs": [
     {
       title: "View system log",
-      description: "Shows the main system log. Contains important system messages.",
+      description: "Shows the main system log with important system messages, errors, and warnings. On Ubuntu/Debian, this is /var/log/syslog. Use arrow keys to scroll, 'q' to quit.",
       command: "sudo less /var/log/syslog"
     },
     {
       title: "View boot messages",
-      description: "Shows messages from the last system boot. Good for troubleshooting.",
+      description: "Shows all system messages from the most recent boot. Essential for diagnosing startup problems, driver issues, or services that failed to start.",
       command: "journalctl -b"
     },
     {
       title: "View recent logs",
-      description: "Shows system logs from the last hour only.",
+      description: "Shows only system logs from the last hour. You can change the time: '10 minutes ago', '2 days ago', 'yesterday', etc. Useful for recent troubleshooting.",
       command: 'journalctl --since "1 hour ago"'
     },
     {
       title: "Search logs for errors",
-      description: "Finds all lines containing 'error' in system logs.",
+      description: "Case-insensitive search for 'error' in system logs. Change 'error' to search for other keywords like 'fail', 'warning', or specific service names.",
       command: 'sudo grep -i "error" /var/log/syslog'
     },
     {
       title: "View kernel messages",
-      description: "Shows kernel and hardware-related messages.",
+      description: "Shows kernel ring buffer with hardware detection, driver loading, and low-level system messages. Useful for diagnosing hardware issues, driver problems, or USB device detection.",
       command: "dmesg"
     },
     {
       title: "Show login history",
-      description: "Displays history of user logins.",
+      description: "Displays history of successful user logins with timestamps, duration, and IP addresses. Shows who accessed the system and when. Useful for security audits.",
       command: "last"
     },
     {
       title: "Show failed logins",
-      description: "Shows failed login attempts. Good security check!",
+      description: "Shows failed login attempts including wrong passwords and invalid usernames. Essential security check to detect brute-force attacks or unauthorized access attempts.",
       command: "sudo lastb"
     }
   ],
@@ -509,8 +592,9 @@ export const snippetsData = {
     },
     {
       title: "Remove program completely",
-      description: "Uninstalls software and deletes all its configuration files.",
-      command: "sudo apt purge package-name"
+      description: "Uninstalls software and permanently deletes all its configuration files. You won't be able to recover settings if you reinstall later.",
+      command: "sudo apt purge package-name",
+      dangerLevel: "caution"
     },
     {
       title: "Clean up unused packages",
