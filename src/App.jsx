@@ -175,84 +175,145 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
             </p>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">1. Introduction</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">1. Data Controller</h3>
               <p>
-                CmdDeck ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, 
-                use, and safeguard your information when you use our web application.
+                This application is operated by an individual developer. For inquiries regarding your personal data, 
+                please contact us via the <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
               </p>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">2. Information We Collect</h3>
-              <p className="mb-2"><strong>Local Storage Data:</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Favorite commands</li>
-                <li>Recently used commands</li>
-                <li>Selected operating system preference</li>
-                <li>Cookie consent preferences</li>
-              </ul>
-              <p className="mt-3 mb-2"><strong>Analytics Data (Google Analytics):</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Page views and navigation patterns</li>
-                <li>Device type and browser information</li>
-                <li>General geographic location (country/city level)</li>
-                <li>Interaction with features and commands</li>
+              <h3 className="text-green-400 font-semibold text-base mb-2">2. Legal Basis for Processing</h3>
+              <p>
+                We process your data based on the following legal grounds under GDPR:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-4 mt-2">
+                <li><strong>Legitimate Interest</strong> (Art. 6(1)(f) GDPR) - For essential app functionality stored locally</li>
+                <li><strong>Consent</strong> (Art. 6(1)(a) GDPR) - For analytics cookies and tracking</li>
               </ul>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">3. How We Use Your Information</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">3. Data We Collect</h3>
+              
+              <div className="mb-3">
+                <p className="font-semibold mb-1">3.1 Essential Data (No Consent Required)</p>
+                <p className="text-sm mb-2">Stored locally in your browser via localStorage:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                  <li>Favorite commands</li>
+                  <li>Recently used commands</li>
+                  <li>Operating system preference</li>
+                  <li>Cookie consent choice</li>
+                </ul>
+                <p className="text-xs text-gray-500 mt-2">This data never leaves your device and is essential for app functionality.</p>
+              </div>
+
+              <div>
+                <p className="font-semibold mb-1">3.2 Analytics Data (Requires Consent)</p>
+                <p className="text-sm mb-2">Collected via Google Analytics only if you accept cookies:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                  <li>Page views and session duration</li>
+                  <li>Browser type and device information</li>
+                  <li>Approximate geographic location (country/region level)</li>
+                  <li>User interactions with features</li>
+                  <li>Referral source</li>
+                </ul>
+                <p className="text-xs text-gray-500 mt-2">IP addresses are anonymized. No personally identifiable information is collected.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">4. How We Use Your Data</h3>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>To personalize your experience with saved preferences</li>
-                <li>To understand how users interact with CmdDeck</li>
-                <li>To improve our features and user interface</li>
-                <li>To analyze usage patterns and optimize performance</li>
+                <li><strong>Essential Data:</strong> To provide core app functionality (favorites, recent commands, preferences)</li>
+                <li><strong>Analytics Data:</strong> To understand usage patterns and improve user experience</li>
+              </ul>
+              <p className="text-sm text-gray-400 mt-2">
+                We do not sell, rent, or share your data with third parties except as described in this policy.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">5. Data Storage and Retention</h3>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li><strong>Local Storage:</strong> Stored indefinitely in your browser until manually cleared</li>
+                <li><strong>Google Analytics:</strong> Retained for 14 months, then automatically deleted</li>
+              </ul>
+              <p className="text-sm text-gray-400 mt-2">
+                No data is stored on our servers. All preference data remains exclusively on your device.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">6. Third-Party Services</h3>
+              <p className="mb-2">
+                We use <strong>Google Analytics</strong> (Google LLC, USA) for usage statistics. Google is certified under the 
+                EU-US Data Privacy Framework.
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                <li>Service: Google Analytics 4</li>
+                <li>Purpose: Website analytics and improvement</li>
+                <li>Legal Basis: Your explicit consent</li>
+                <li>Data Transfer: To USA (adequacy decision)</li>
+                <li>Privacy Policy: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Privacy Policy</a></li>
+                <li>Opt-out: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Analytics Opt-out</a></li>
               </ul>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">4. Data Storage and Security</h3>
-              <p>
-                All preference data is stored locally in your browser using localStorage. We do not store this data on our servers. 
-                Analytics data is processed by Google Analytics according to their privacy policy and data retention settings.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">5. Third-Party Services</h3>
-              <p>
-                We use Google Analytics to collect usage statistics. Google Analytics may use cookies and similar technologies. 
-                For more information, visit <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google's Privacy Policy</a>.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">6. Your Rights</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">7. Your Rights Under GDPR</h3>
+              <p className="mb-2">As an EU resident, you have the following rights:</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>You can clear your local data at any time through your browser settings</li>
-                <li>You can opt-out of analytics by declining cookie consent</li>
-                <li>You can request deletion of any analytics data by contacting us</li>
+                <li><strong>Right of Access</strong> (Art. 15 GDPR) - Request information about your data</li>
+                <li><strong>Right to Rectification</strong> (Art. 16 GDPR) - Correct inaccurate data</li>
+                <li><strong>Right to Erasure</strong> (Art. 17 GDPR) - Request deletion of your data</li>
+                <li><strong>Right to Restriction</strong> (Art. 18 GDPR) - Limit data processing</li>
+                <li><strong>Right to Data Portability</strong> (Art. 20 GDPR) - Receive your data in portable format</li>
+                <li><strong>Right to Object</strong> (Art. 21 GDPR) - Object to data processing</li>
+                <li><strong>Right to Withdraw Consent</strong> - Revoke consent at any time</li>
               </ul>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">7. Children's Privacy</h3>
-              <p>
-                CmdDeck is not intended for users under 13 years of age. We do not knowingly collect personal information from children.
+              <p className="text-sm text-gray-400 mt-2">
+                To exercise these rights, contact us via GitHub or clear your browser data directly.
               </p>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">8. Changes to This Policy</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">8. Data Security</h3>
               <p>
-                We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated effective date.
+                We implement appropriate technical measures to protect your data. Local data is stored in your browser's 
+                secure storage. Analytics data is transmitted over encrypted connections (HTTPS/TLS).
               </p>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">9. Contact</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">9. Children's Privacy</h3>
               <p>
-                If you have questions about this Privacy Policy, please contact the developer Alessandro Attino through the <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
+                This service is not directed to persons under 16 years of age. We do not knowingly collect data from children. 
+                If you believe a child has provided us with personal data, please contact us immediately.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">10. Changes to This Policy</h3>
+              <p>
+                We may update this Privacy Policy to reflect changes in practices or legal requirements. 
+                Material changes will be indicated by updating the effective date. Your continued use constitutes acceptance of changes.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">11. Supervisory Authority</h3>
+              <p>
+                You have the right to lodge a complaint with your local data protection authority if you believe 
+                your data protection rights have been violated.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">12. Contact</h3>
+              <p>
+                For questions, concerns, or to exercise your rights regarding this Privacy Policy, contact us through the 
+                <a href="https://github.com/aleattino/cmddeck/issues" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline ml-1">GitHub repository</a>.
               </p>
             </section>
           </div>
@@ -291,71 +352,152 @@ const CookiePolicyModal = ({ isOpen, onClose }) => {
             </p>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">1. What Are Cookies</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">1. What Are Cookies and Similar Technologies</h3>
               <p>
-                Cookies are small text files that are stored on your device when you visit a website. They help websites remember 
-                your preferences and improve your experience.
+                Cookies are small text files stored on your device when you visit a website. We also use localStorage, 
+                a browser technology that stores data locally on your device. Both help remember your preferences and improve your experience.
               </p>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">2. How We Use Cookies</h3>
-              <p className="mb-2">CmdDeck uses the following types of data storage:</p>
+              <h3 className="text-green-400 font-semibold text-base mb-2">2. Categories of Cookies</h3>
               
               <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-3">
-                <h4 className="text-green-400 font-semibold mb-2">Essential Local Storage</h4>
-                <p className="mb-2">These are required for the app to function and cannot be disabled:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li><code className="text-green-400">cmddeckFavorites</code> - Your starred commands</li>
-                  <li><code className="text-green-400">cmddeckRecent</code> - Recently copied commands</li>
-                  <li><code className="text-green-400">selectedOS</code> - Your OS preference</li>
-                  <li><code className="text-green-400">cmddeckCookieConsent</code> - Your cookie choice</li>
-                </ul>
+                <h4 className="text-green-400 font-semibold mb-2">A. Strictly Necessary (No Consent Required)</h4>
+                <p className="mb-2 text-sm">
+                  Essential for app functionality. Stored in localStorage (not cookies). Legal basis: Legitimate interest (Art. 6(1)(f) GDPR).
+                </p>
+                <table className="w-full text-xs mt-2">
+                  <thead className="border-b border-gray-700">
+                    <tr>
+                      <th className="text-left py-1 text-green-400">Name</th>
+                      <th className="text-left py-1 text-green-400">Purpose</th>
+                      <th className="text-left py-1 text-green-400">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-400">
+                    <tr className="border-b border-gray-800">
+                      <td className="py-1"><code>cmddeckFavorites</code></td>
+                      <td className="py-1">Store starred commands</td>
+                      <td className="py-1">Persistent</td>
+                    </tr>
+                    <tr className="border-b border-gray-800">
+                      <td className="py-1"><code>cmddeckRecent</code></td>
+                      <td className="py-1">Store recent commands</td>
+                      <td className="py-1">Persistent</td>
+                    </tr>
+                    <tr className="border-b border-gray-800">
+                      <td className="py-1"><code>selectedOS</code></td>
+                      <td className="py-1">Remember OS choice</td>
+                      <td className="py-1">Persistent</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1"><code>cmddeckCookieConsent</code></td>
+                      <td className="py-1">Store consent choice</td>
+                      <td className="py-1">Persistent</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
               <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                <h4 className="text-green-400 font-semibold mb-2">Analytics Cookies (Optional)</h4>
-                <p className="mb-2">Used only if you accept cookies:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li><code className="text-green-400">_ga</code> - Google Analytics identifier (2 years)</li>
-                  <li><code className="text-green-400">_ga_*</code> - Google Analytics session data (2 years)</li>
-                </ul>
+                <h4 className="text-green-400 font-semibold mb-2">B. Analytics Cookies (Consent Required)</h4>
+                <p className="mb-2 text-sm">
+                  Used only with your explicit consent. Legal basis: Consent (Art. 6(1)(a) GDPR).
+                </p>
+                <table className="w-full text-xs mt-2">
+                  <thead className="border-b border-gray-700">
+                    <tr>
+                      <th className="text-left py-1 text-green-400">Name</th>
+                      <th className="text-left py-1 text-green-400">Provider</th>
+                      <th className="text-left py-1 text-green-400">Purpose</th>
+                      <th className="text-left py-1 text-green-400">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-400">
+                    <tr className="border-b border-gray-800">
+                      <td className="py-1"><code>_ga</code></td>
+                      <td className="py-1">Google</td>
+                      <td className="py-1">Distinguish users</td>
+                      <td className="py-1">2 years</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1"><code>_ga_*</code></td>
+                      <td className="py-1">Google</td>
+                      <td className="py-1">Persist session state</td>
+                      <td className="py-1">2 years</td>
+                    </tr>
+                  </tbody>
+                </table>
                 <p className="mt-2 text-xs text-gray-500">
-                  These help us understand how users interact with CmdDeck to improve the experience.
+                  Data is transmitted to Google LLC (USA) under EU-US Data Privacy Framework adequacy decision.
                 </p>
               </div>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">3. Managing Cookies</h3>
-              <p className="mb-2">You have full control over cookies:</p>
+              <h3 className="text-green-400 font-semibold text-base mb-2">3. Your Consent</h3>
+              <p className="mb-2">
+                When you first visit CmdDeck, you'll see a cookie banner with two options:
+              </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong>Accept/Decline:</strong> Choose your preference in the cookie banner</li>
-                <li><strong>Browser Settings:</strong> Most browsers allow you to manage cookies in settings</li>
-                <li><strong>Clear Data:</strong> You can clear browser data at any time</li>
-                <li><strong>Change Mind:</strong> Clear your browser's localStorage to see the banner again</li>
+                <li><strong>Accept:</strong> Enables analytics cookies; we can track usage to improve the app</li>
+                <li><strong>Decline:</strong> Disables analytics cookies; only essential localStorage is used</li>
+              </ul>
+              <p className="text-sm text-gray-400 mt-2">
+                You can withdraw consent at any time by clearing your browser data or localStorage.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">4. How to Manage Cookies</h3>
+              <div className="space-y-2">
+                <div>
+                  <p className="font-semibold mb-1">Browser Settings:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                    <li>Chrome: Settings → Privacy and security → Cookies and other site data</li>
+                    <li>Firefox: Settings → Privacy & Security → Cookies and Site Data</li>
+                    <li>Safari: Preferences → Privacy → Manage Website Data</li>
+                    <li>Edge: Settings → Cookies and site permissions</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">Google Analytics Opt-out:</p>
+                  <p className="text-sm ml-4">
+                    Install the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Analytics Opt-out Browser Add-on</a>
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-3">
+                Note: Blocking strictly necessary localStorage may prevent the app from functioning properly.
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-green-400 font-semibold text-base mb-2">5. Third-Party Cookies</h3>
+              <p className="mb-2">
+                We use Google Analytics 4 (Google LLC). Google may set cookies according to their policies:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                <li><a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Cookie Policy</a></li>
+                <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Privacy Policy</a></li>
+                <li><a href="https://support.google.com/analytics/answer/6004245" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Analytics Data Usage</a></li>
               </ul>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">4. Third-Party Cookies</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">6. Updates to This Policy</h3>
               <p>
-                When you accept cookies, Google Analytics may set cookies on your device. These are governed by 
-                <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline ml-1">Google's Cookie Policy</a>.
+                We may update this Cookie Policy to reflect changes in technology, legal requirements, or our practices. 
+                Updates will be indicated by the effective date at the top of this page.
               </p>
             </section>
 
             <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">5. Updates to This Policy</h3>
+              <h3 className="text-green-400 font-semibold text-base mb-2">7. Contact</h3>
               <p>
-                We may update this Cookie Policy to reflect changes in technology or regulations. Check this page periodically for updates.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">6. Contact</h3>
-              <p>
-                Questions about cookies? Contact the developer Alessandro Attino via the <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
+                For questions about our use of cookies, please contact us via the 
+                <a href="https://github.com/aleattino/cmddeck/issues" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline ml-1">GitHub repository</a>.
               </p>
             </section>
           </div>
