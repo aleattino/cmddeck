@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2025-11-11
+
+### ✨ Improved
+- **Command Customization UX** - Moved interactive inputs to modal
+  - Replaced inline input fields with "Customize Command" button
+  - All command cards now have consistent height
+  - Cleaner, more professional appearance
+  - Modal provides better space for input fields and command preview
+  - Purple-themed customization modal with Cancel/Copy buttons
+  
+### 🐛 Fixed
+- Fixed card height inconsistency between interactive and non-interactive commands
+- Improved visual balance in command grid layout
+
+---
+
 ## [1.3.0] - 2025-11-11
 
 ### 🎉 Added

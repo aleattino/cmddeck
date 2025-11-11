@@ -536,7 +536,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.3.0</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.3.1</span></span>
               <span className="text-gray-600">•</span>
               <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
             </div>
@@ -1044,10 +1044,91 @@ const CommandExplanationModal = ({ isOpen, onClose, explanation }) => {
   );
 };
 
+// Command Customization Modal
+const CommandCustomizationModal = ({ isOpen, onClose, snippet, inputValues, onInputChange, displayCommand, onCopy, isCopied }) => {
+  if (!isOpen || !snippet.interactive) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CommandIcon size={24} className="text-purple-400" />
+            <h2 className="text-lg sm:text-xl font-bold text-green-400">Customize Command</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-300 p-1"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 sm:p-6 space-y-4">
+          <div>
+            <h3 className="text-green-400 font-semibold mb-2">{snippet.title}</h3>
+            <p className="text-gray-400 text-sm mb-4">{snippet.description}</p>
+          </div>
+
+          {/* Input Fields */}
+          <div className="space-y-3">
+            {snippet.inputs?.map((input, index) => (
+              <div key={index}>
+                <label className="text-sm text-gray-300 mb-1.5 block font-medium">{input.label}:</label>
+                <input
+                  type="text"
+                  placeholder={input.placeholder}
+                  value={inputValues[input.param] || ''}
+                  onChange={(e) => onInputChange(input.param, e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Generated Command Preview */}
+          <div className="mt-6">
+            <label className="text-sm text-gray-400 mb-2 block">Generated command:</label>
+            <div className="bg-black/50 p-3 rounded-md font-mono text-sm text-gray-200 border border-gray-700">
+              <code className="block break-all">{displayCommand}</code>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 sm:p-6 border-t border-gray-800 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md text-sm font-medium transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onCopy(displayCommand);
+              setTimeout(() => onClose(), 500);
+            }}
+            className={`flex-1 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors ${
+              isCopied 
+                ? 'bg-green-600 text-white' 
+                : 'bg-purple-500 hover:bg-purple-600 text-black'
+            }`}
+          >
+            {isCopied ? '✓ Copied!' : 'Copy Command'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Snippet card component
 const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory }) => {
   const [inputValues, setInputValues] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showCustomization, setShowCustomization] = useState(false);
   
   // Generate command based on inputs
   const displayCommand = useMemo(() => {
@@ -1132,34 +1213,29 @@ const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, 
           )}
         </div>
         <p className="text-gray-400 text-xs sm:text-sm mb-3 leading-relaxed">{snippet.description}</p>
-        
-        {/* Interactive Inputs */}
-        {snippet.interactive && snippet.inputs && (
-          <div className="mb-3 space-y-2 bg-gray-800/30 p-3 rounded-md border border-gray-700">
-            <p className="text-xs text-gray-500 mb-2">Customize this command:</p>
-            {snippet.inputs.map((input, index) => (
-              <div key={index}>
-                <label className="text-xs text-gray-400 mb-1 block">{input.label}:</label>
-                <input
-                  type="text"
-                  placeholder={input.placeholder}
-                  value={inputValues[input.param] || ''}
-                  onChange={(e) => handleInputChange(input.param, e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500"
-                />
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-      <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
-        <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{displayCommand}</code>
-        <button 
-          onClick={() => onCopy(displayCommand)}
-          className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
-        >
-          {isCopied ? '✓' : 'Copy'}
-        </button>
+      
+      <div className="space-y-2">
+        <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
+          <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{snippet.command}</code>
+          <button 
+            onClick={() => onCopy(snippet.command)}
+            className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            {isCopied ? '✓' : 'Copy'}
+          </button>
+        </div>
+        
+        {/* Customize Button for Interactive Commands */}
+        {snippet.interactive && (
+          <button
+            onClick={() => setShowCustomization(true)}
+            className="w-full py-2 px-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors border border-purple-500/50 flex items-center justify-center gap-2"
+          >
+            <CommandIcon size={14} />
+            Customize Command
+          </button>
+        )}
       </div>
       
       {/* Explanation Modal */}
@@ -1167,6 +1243,18 @@ const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, 
         isOpen={showExplanation}
         onClose={() => setShowExplanation(false)}
         explanation={snippet.explanation}
+      />
+      
+      {/* Customization Modal */}
+      <CommandCustomizationModal
+        isOpen={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        snippet={snippet}
+        inputValues={inputValues}
+        onInputChange={handleInputChange}
+        displayCommand={displayCommand}
+        onCopy={onCopy}
+        isCopied={isCopied}
       />
     </div>
   );
