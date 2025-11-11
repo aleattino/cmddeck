@@ -147,108 +147,260 @@ export const snippetsData = {
     {
       title: "Copy file",
       description: "Makes a copy of a file to another location.",
-      command: "cp source.txt destination.txt"
+      command: "cp source.txt destination.txt",
+      interactive: true,
+      inputs: [
+        { label: "Source file", placeholder: "source.txt", param: "source" },
+        { label: "Destination", placeholder: "destination.txt", param: "dest" }
+      ],
+      commandTemplate: (params) => `cp ${params.source || 'source.txt'} ${params.dest || 'destination.txt'}`
     },
     {
       title: "Copy entire folder",
       description: "Copies a directory and all its contents recursively.",
-      command: "cp -r my-folder/ backup-folder/"
+      command: "cp -r my-folder/ backup-folder/",
+      interactive: true,
+      inputs: [
+        { label: "Source folder", placeholder: "my-folder/", param: "source" },
+        { label: "Destination folder", placeholder: "backup-folder/", param: "dest" }
+      ],
+      commandTemplate: (params) => `cp -r ${params.source || 'my-folder/'} ${params.dest || 'backup-folder/'}`
     },
     {
       title: "Move or rename",
       description: "Moves a file to another location, or renames it if destination is in same folder.",
-      command: "mv oldname.txt newname.txt"
+      command: "mv oldname.txt newname.txt",
+      interactive: true,
+      inputs: [
+        { label: "Old name/path", placeholder: "oldname.txt", param: "old" },
+        { label: "New name/path", placeholder: "newname.txt", param: "new" }
+      ],
+      commandTemplate: (params) => `mv ${params.old || 'oldname.txt'} ${params.new || 'newname.txt'}`
     },
     {
       title: "Delete file",
       description: "Permanently deletes a file. Be careful, there's no trash bin!",
       command: "rm filename.txt",
-      dangerLevel: "caution"
+      dangerLevel: "caution",
+      interactive: true,
+      inputs: [
+        { label: "Filename to delete", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `rm ${params.filename || 'filename.txt'}`
     },
     {
       title: "Delete folder",
       description: "⚠️ DANGER: Deletes a directory and everything inside it recursively WITHOUT asking for confirmation. This action is irreversible!",
       command: "rm -rf folder-name/",
-      dangerLevel: "danger"
+      dangerLevel: "danger",
+      interactive: true,
+      inputs: [
+        { label: "Folder to delete", placeholder: "folder-name/", param: "folder" }
+      ],
+      commandTemplate: (params) => `rm -rf ${params.folder || 'folder-name/'}`
     },
     {
       title: "Make file executable",
       description: "Makes a script file runnable by adding execute permissions. Essential for shell scripts and programs you want to run directly (e.g., ./script.sh).",
-      command: "chmod +x script.sh"
+      command: "chmod +x script.sh",
+      interactive: true,
+      inputs: [
+        { label: "Script filename", placeholder: "script.sh", param: "script" }
+      ],
+      commandTemplate: (params) => `chmod +x ${params.script || 'script.sh'}`
     }
   ],
   "Search & Find": [
     {
       title: "Find files by name",
       description: "Searches for files matching a pattern in your home directory and subdirectories. Use * as wildcard (e.g., *.txt finds all text files). Case-sensitive by default.",
-      command: 'find ~ -name "*.txt"'
+      command: 'find ~ -name "*.txt"',
+      interactive: true,
+      inputs: [
+        { label: "Search pattern", placeholder: "*.txt", param: "pattern" },
+        { label: "Start directory", placeholder: "~", param: "directory" }
+      ],
+      commandTemplate: (params) => `find ${params.directory || '~'} -name "${params.pattern || '*.txt'}"`,
+      explanation: {
+        parts: [
+          { text: "find", description: "Command to search for files and directories in a directory hierarchy" },
+          { text: "~", description: "Starting directory (~ means your home directory)" },
+          { text: "-name", description: "Search by filename pattern" },
+          { text: '"*.txt"', description: "Pattern to match (*.txt = all files ending with .txt)" }
+        ]
+      }
     },
     {
       title: "Find large files",
       description: "Locates files bigger than 100MB. Perfect for cleaning up disk space!",
-      command: "find ~ -type f -size +100M"
+      command: "find ~ -type f -size +100M",
+      interactive: true,
+      inputs: [
+        { label: "Minimum size (e.g., 100M, 1G)", placeholder: "100M", param: "size" },
+        { label: "Search directory", placeholder: "~", param: "directory" }
+      ],
+      commandTemplate: (params) => `find ${params.directory || '~'} -type f -size +${params.size || '100M'}`,
+      explanation: {
+        parts: [
+          { text: "find", description: "Command to search for files" },
+          { text: "~", description: "Search in home directory" },
+          { text: "-type f", description: "Only find files (not directories)" },
+          { text: "-size +100M", description: "Files larger than 100 megabytes" }
+        ]
+      }
     },
     {
       title: "Find recent files",
       description: "Shows files modified in the last 7 days. Great for tracking recent work.",
-      command: "find ~ -type f -mtime -7"
+      command: "find ~ -type f -mtime -7",
+      explanation: {
+        parts: [
+          { text: "find", description: "Command to search for files" },
+          { text: "~", description: "Search in home directory" },
+          { text: "-type f", description: "Only find files (not directories)" },
+          { text: "-mtime -7", description: "Modified in the last 7 days" }
+        ]
+      }
     },
     {
       title: "Search text in files",
       description: "Recursively searches for text inside all files in current directory and subdirectories. Perfect for finding specific code, configuration values, or text content across multiple files.",
-      command: 'grep -r "search text" .'
+      command: 'grep -r "search text" .',
+      interactive: true,
+      inputs: [
+        { label: "Text to search", placeholder: "search text", param: "text" },
+        { label: "Directory", placeholder: ".", param: "directory" }
+      ],
+      commandTemplate: (params) => `grep -r "${params.text || 'search text'}" ${params.directory || '.'}`,
+      explanation: {
+        parts: [
+          { text: "grep", description: "Command to search for text patterns in files" },
+          { text: "-r", description: "Recursive - search in all subdirectories" },
+          { text: '"search text"', description: "The text pattern to search for" },
+          { text: ".", description: "Current directory (starting point)" }
+        ]
+      }
     },
     {
       title: "Search (case-insensitive)",
       description: "Recursively searches for text ignoring uppercase/lowercase differences. Useful when you're not sure about capitalization (finds 'Error', 'ERROR', and 'error').",
-      command: 'grep -ri "search text" .'
+      command: 'grep -ri "search text" .',
+      interactive: true,
+      inputs: [
+        { label: "Text to search", placeholder: "search text", param: "text" },
+        { label: "Directory", placeholder: ".", param: "directory" }
+      ],
+      commandTemplate: (params) => `grep -ri "${params.text || 'search text'}" ${params.directory || '.'}`,
+      explanation: {
+        parts: [
+          { text: "grep", description: "Command to search for text patterns" },
+          { text: "-r", description: "Recursive - search in all subdirectories" },
+          { text: "-i", description: "Case-insensitive - ignore uppercase/lowercase" },
+          { text: '"search text"', description: "The text pattern to search for" },
+          { text: ".", description: "Current directory" }
+        ]
+      }
     },
     {
       title: "Quick file search",
       description: "Super fast file search using pre-built database. Much faster than find but requires running 'sudo updatedb' first to index the filesystem. Database typically updates daily via cron.",
-      command: "locate filename"
+      command: "locate filename",
+      interactive: true,
+      inputs: [
+        { label: "Filename to search", placeholder: "filename", param: "filename" }
+      ],
+      commandTemplate: (params) => `locate ${params.filename || 'filename'}`,
+      explanation: {
+        parts: [
+          { text: "locate", description: "Fast file search using pre-built database" },
+          { text: "filename", description: "Name or pattern to search for" }
+        ]
+      }
     }
   ],
   "View & Edit Files": [
     {
       title: "View file content",
       description: "Displays the entire content of a text file in the terminal. Good for small files; for large files use 'less' instead to paginate.",
-      command: "cat filename.txt"
+      command: "cat filename.txt",
+      interactive: true,
+      inputs: [
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `cat ${params.filename || 'filename.txt'}`
     },
     {
       title: "View large files",
       description: "Opens large files page by page. Use arrows to scroll, 'q' to quit.",
-      command: "less filename.txt"
+      command: "less filename.txt",
+      interactive: true,
+      inputs: [
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `less ${params.filename || 'filename.txt'}`
     },
     {
       title: "View first lines",
       description: "Shows only the first 20 lines of a file. Good for quick previews.",
-      command: "head -n 20 filename.txt"
+      command: "head -n 20 filename.txt",
+      interactive: true,
+      inputs: [
+        { label: "Number of lines", placeholder: "20", param: "lines" },
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `head -n ${params.lines || '20'} ${params.filename || 'filename.txt'}`
     },
     {
       title: "View last lines",
       description: "Shows only the last 20 lines. Perfect for checking recent log entries.",
-      command: "tail -n 20 filename.txt"
+      command: "tail -n 20 filename.txt",
+      interactive: true,
+      inputs: [
+        { label: "Number of lines", placeholder: "20", param: "lines" },
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `tail -n ${params.lines || '20'} ${params.filename || 'filename.txt'}`
     },
     {
       title: "Follow file changes",
       description: "Watches a file and shows new lines as they're added. Great for logs!",
-      command: "tail -f /var/log/syslog"
+      command: "tail -f /var/log/syslog",
+      interactive: true,
+      inputs: [
+        { label: "Log file path", placeholder: "/var/log/syslog", param: "logfile" }
+      ],
+      commandTemplate: (params) => `tail -f ${params.logfile || '/var/log/syslog'}`
     },
     {
       title: "Edit with nano (easy)",
       description: "Opens file in nano, a beginner-friendly editor. Commands shown at bottom!",
-      command: "nano filename.txt"
+      command: "nano filename.txt",
+      interactive: true,
+      inputs: [
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `nano ${params.filename || 'filename.txt'}`
     },
     {
       title: "Create or append text",
       description: "Adds a line of text to the end of a file. Creates file if it doesn't exist. Note: Use >> to append, > will overwrite the entire file!",
-      command: 'echo "Hello World" >> filename.txt'
+      command: 'echo "Hello World" >> filename.txt',
+      interactive: true,
+      inputs: [
+        { label: "Text to add", placeholder: "Hello World", param: "text" },
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `echo "${params.text || 'Hello World'}" >> ${params.filename || 'filename.txt'}`
     },
     {
       title: "Count lines in file",
       description: "Counts and displays the number of lines in a file. Remove -l flag to also count words and characters. Useful for log analysis and code metrics.",
-      command: "wc -l filename.txt"
+      command: "wc -l filename.txt",
+      interactive: true,
+      inputs: [
+        { label: "Filename", placeholder: "filename.txt", param: "filename" }
+      ],
+      commandTemplate: (params) => `wc -l ${params.filename || 'filename.txt'}`
     }
   ],
   "Processes & Performance": [
@@ -271,13 +423,23 @@ export const snippetsData = {
       title: "Kill a process",
       description: "Forcefully terminates a running process immediately. Replace 1234 with actual Process ID. The process won't have time to save data or clean up.",
       command: "kill -9 1234",
-      dangerLevel: "caution"
+      dangerLevel: "caution",
+      interactive: true,
+      inputs: [
+        { label: "Process ID (PID)", placeholder: "1234", param: "pid" }
+      ],
+      commandTemplate: (params) => `kill -9 ${params.pid || '1234'}`
     },
     {
       title: "Kill by name",
       description: "Stops all processes matching the name. This can terminate multiple processes at once, so verify first with 'ps aux | grep name'.",
       command: "killall firefox",
-      dangerLevel: "caution"
+      dangerLevel: "caution",
+      interactive: true,
+      inputs: [
+        { label: "Process name", placeholder: "firefox", param: "name" }
+      ],
+      commandTemplate: (params) => `killall ${params.name || 'firefox'}`
     },
     {
       title: "Check memory usage",
@@ -304,7 +466,13 @@ export const snippetsData = {
     {
       title: "Test internet connection",
       description: "Sends 4 test packets to Google to check if internet is working. Shows response time (latency) in milliseconds and packet loss. Lower latency is better (good: <50ms, ok: 50-100ms, slow: >100ms).",
-      command: "ping -c 4 google.com"
+      command: "ping -c 4 google.com",
+      interactive: true,
+      inputs: [
+        { label: "Host to ping", placeholder: "google.com", param: "host" },
+        { label: "Number of packets", placeholder: "4", param: "count" }
+      ],
+      commandTemplate: (params) => `ping -c ${params.count || '4'} ${params.host || 'google.com'}`
     },
     {
       title: "Show my IP address",
@@ -319,39 +487,96 @@ export const snippetsData = {
     {
       title: "Download a file",
       description: "Downloads a file from the internet and saves it to current directory. Shows progress bar and download speed. Can resume interrupted downloads with -c flag.",
-      command: "wget https://example.com/file.zip"
+      command: "wget https://example.com/file.zip",
+      interactive: true,
+      inputs: [
+        { label: "URL to download", placeholder: "https://example.com/file.zip", param: "url" }
+      ],
+      commandTemplate: (params) => `wget ${params.url || 'https://example.com/file.zip'}`
     },
     {
       title: "Download with curl",
       description: "Alternative download tool that's often pre-installed on systems. The -O flag saves file with original name. More versatile than wget for API calls and HTTP requests.",
-      command: "curl -O https://example.com/file.zip"
+      command: "curl -O https://example.com/file.zip",
+      interactive: true,
+      inputs: [
+        { label: "URL to download", placeholder: "https://example.com/file.zip", param: "url" }
+      ],
+      commandTemplate: (params) => `curl -O ${params.url || 'https://example.com/file.zip'}`
     },
     {
       title: "Check website status",
       description: "Tests if a website is up and shows HTTP response code (200 = OK).",
-      command: "curl -I https://example.com"
+      command: "curl -I https://example.com",
+      interactive: true,
+      inputs: [
+        { label: "Website URL", placeholder: "https://example.com", param: "url" }
+      ],
+      commandTemplate: (params) => `curl -I ${params.url || 'https://example.com'}`
     },
     {
       title: "DNS lookup",
       description: "Finds the IP address of a domain name by querying DNS servers. Useful for troubleshooting DNS issues or checking if a domain is resolving correctly.",
-      command: "nslookup google.com"
+      command: "nslookup google.com",
+      interactive: true,
+      inputs: [
+        { label: "Domain name", placeholder: "google.com", param: "domain" }
+      ],
+      commandTemplate: (params) => `nslookup ${params.domain || 'google.com'}`
     },
     {
       title: "Trace network path",
       description: "Shows each hop (router) packets take to reach a destination with response times. Helps identify where network slowdowns or failures occur. Each line is one router along the path.",
-      command: "traceroute google.com"
+      command: "traceroute google.com",
+      interactive: true,
+      inputs: [
+        { label: "Destination host", placeholder: "google.com", param: "host" }
+      ],
+      commandTemplate: (params) => `traceroute ${params.host || 'google.com'}`
     }
   ],
   "Archives & Compression": [
     {
       title: "Create .tar.gz archive",
       description: "Compresses a folder into a .tar.gz file. Standard Linux backup format.",
-      command: "tar -czvf backup.tar.gz ~/Documents/"
+      command: "tar -czvf backup.tar.gz ~/Documents/",
+      interactive: true,
+      inputs: [
+        { label: "Archive name", placeholder: "backup.tar.gz", param: "archive" },
+        { label: "Folder to compress", placeholder: "~/Documents/", param: "folder" }
+      ],
+      commandTemplate: (params) => `tar -czvf ${params.archive || 'backup.tar.gz'} ${params.folder || '~/Documents/'}`,
+      explanation: {
+        parts: [
+          { text: "tar", description: "The program for creating archives" },
+          { text: "-c", description: "create - Create a new archive" },
+          { text: "-z", description: "zip - Compress it with gzip" },
+          { text: "-v", description: "verbose - Show files while being processed" },
+          { text: "-f", description: "file - Specify the archive filename (must be last option)" },
+          { text: "backup.tar.gz", description: "Name of the archive file to create" },
+          { text: "~/Documents/", description: "Folder to archive" }
+        ]
+      }
     },
     {
       title: "Extract .tar.gz archive",
       description: "Extracts a compressed .tar.gz file to current directory.",
-      command: "tar -xzvf backup.tar.gz"
+      command: "tar -xzvf backup.tar.gz",
+      interactive: true,
+      inputs: [
+        { label: "Archive to extract", placeholder: "backup.tar.gz", param: "archive" }
+      ],
+      commandTemplate: (params) => `tar -xzvf ${params.archive || 'backup.tar.gz'}`,
+      explanation: {
+        parts: [
+          { text: "tar", description: "The program for extracting archives" },
+          { text: "-x", description: "extract - Extract files from archive" },
+          { text: "-z", description: "zip - Decompress with gzip" },
+          { text: "-v", description: "verbose - Show files being extracted" },
+          { text: "-f", description: "file - Specify the archive filename" },
+          { text: "backup.tar.gz", description: "Archive file to extract" }
+        ]
+      }
     },
     {
       title: "List archive contents",
@@ -437,32 +662,62 @@ export const snippetsData = {
     {
       title: "Start a service",
       description: "Starts a system service (like web server, database, etc.). The service will run until stopped or system reboots. Common services: nginx, apache2, mysql, postgresql, ssh.",
-      command: "sudo systemctl start service-name"
+      command: "sudo systemctl start service-name",
+      interactive: true,
+      inputs: [
+        { label: "Service name", placeholder: "service-name", param: "service" }
+      ],
+      commandTemplate: (params) => `sudo systemctl start ${params.service || 'service-name'}`
     },
     {
       title: "Stop a service",
       description: "Stops a running service gracefully, allowing it to shut down properly and save data. The service won't restart automatically unless enabled to start on boot.",
-      command: "sudo systemctl stop service-name"
+      command: "sudo systemctl stop service-name",
+      interactive: true,
+      inputs: [
+        { label: "Service name", placeholder: "service-name", param: "service" }
+      ],
+      commandTemplate: (params) => `sudo systemctl stop ${params.service || 'service-name'}`
     },
     {
       title: "Restart a service",
       description: "Stops and starts a service in one command. Essential after config changes to apply new settings. Briefly interrupts the service.",
-      command: "sudo systemctl restart service-name"
+      command: "sudo systemctl restart service-name",
+      interactive: true,
+      inputs: [
+        { label: "Service name", placeholder: "service-name", param: "service" }
+      ],
+      commandTemplate: (params) => `sudo systemctl restart ${params.service || 'service-name'}`
     },
     {
       title: "Check service status",
       description: "Shows if a service is running, crashed, or stopped, along with recent log messages and resource usage. Green 'active (running)' means it's working properly.",
-      command: "systemctl status service-name"
+      command: "systemctl status service-name",
+      interactive: true,
+      inputs: [
+        { label: "Service name", placeholder: "service-name", param: "service" }
+      ],
+      commandTemplate: (params) => `systemctl status ${params.service || 'service-name'}`
     },
     {
       title: "Enable service at boot",
       description: "Makes a service start automatically when system boots up. Doesn't start it now - use 'start' for that. Essential for servers that need services running after reboot.",
-      command: "sudo systemctl enable service-name"
+      command: "sudo systemctl enable service-name",
+      interactive: true,
+      inputs: [
+        { label: "Service name", placeholder: "service-name", param: "service" }
+      ],
+      commandTemplate: (params) => `sudo systemctl enable ${params.service || 'service-name'}`
     },
     {
       title: "Disable service at boot",
       description: "Prevents a service from starting automatically on boot. The service keeps running now but won't start after next reboot. Useful for disabling unwanted services.",
-      command: "sudo systemctl disable service-name"
+      command: "sudo systemctl disable service-name",
+      interactive: true,
+      inputs: [
+        { label: "Service name", placeholder: "service-name", param: "service" }
+      ],
+      commandTemplate: (params) => `sudo systemctl disable ${params.service || 'service-name'}`
     },
     {
       title: "List all services",

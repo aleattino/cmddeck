@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2025-11-11
+
+### 🎉 Added
+- **Interactive Command Builder** - Transform static commands into customizable tools
+  - Real-time input fields for commands with placeholders
+  - Dynamic command generation as you type
+  - Works with grep, find, tar, locate and more
+  - Purple "Interactive" badge to identify customizable commands
+  - Preserves default values if inputs are left empty
+  
+- **Command Explanation System** - Learn what each command does
+  - Blue info icon (?) next to commands with explanations
+  - Interactive modal breaking down command parts
+  - Detailed descriptions for each flag and parameter
+  - Educational tooltips for safer command usage
+  - Currently available for: grep, find, tar commands (more coming!)
+  
+- **Live Data from GitHub Gist** - Dynamic content updates without redeployment
+  - Commands loaded from GitHub Gist on app start
+  - Fallback to local data if Gist unavailable
+  - Update commands by editing Gist (no rebuild needed)
+  - Console logging for data source transparency
+  - Seamless user experience during loading
+
+### ✨ Improved
+- **Enhanced Command Cards** - Better visual hierarchy and functionality
+  - New icon system for interactive and explained commands
+  - Improved spacing for input fields
+  - Better mobile responsiveness for interactive elements
+  - Cleaner layout with organized badges
+  
+- **User Experience** - More intuitive and educational
+  - Commands now teach users instead of just providing copy-paste
+  - Interactive inputs reduce errors from manual editing
+  - Explanations promote understanding over blind copying
+  - Better feedback with emoji indicators (🛠️ for customization, 🎓 for learning)
+
+### 📦 Technical
+- Added `HelpCircle` icon from lucide-react
+- New `CommandExplanationModal` component
+- Enhanced `SnippetCard` with state management for inputs
+- `useMemo` hook for efficient command generation
+- `useEffect` hook for Gist data fetching
+- Extended data structure with `interactive`, `inputs`, `commandTemplate`, and `explanation` fields
+- Version bumped in both `package.json` and About modal
+
+### 🔧 Data Structure Changes
+```javascript
+{
+  interactive: true,
+  inputs: [{ label, placeholder, param }],
+  commandTemplate: (params) => `command ${params.param}`,
+  explanation: {
+    parts: [{ text, description }]
+  }
+}
+```
+
+---
+
 ## [1.2.0] - 2025-10-15
 
 ### 🎉 Added

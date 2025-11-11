@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Monitor, 
   Folder, 
@@ -32,7 +32,8 @@ import {
   Cookie,
   Shield,
   X,
-  Menu
+  Menu,
+  HelpCircle
 } from 'lucide-react';
 import { snippetsData, packageManagementCommands } from './data/snippets';
 import { workflows } from './data/workflows';
@@ -535,7 +536,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.2.0</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.3.0</span></span>
               <span className="text-gray-600">•</span>
               <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
             </div>
@@ -587,6 +588,15 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
                   className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-md transition-colors inline-flex items-center gap-1"
                 >
                   GitHub
+                  <ExternalLink size={12} />
+                </a>
+                <a
+                  href="https://github.com/aleattino/cmddeck/blob/main/CHANGELOG.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-md transition-colors inline-flex items-center gap-1"
+                >
+                  Changelog
                   <ExternalLink size={12} />
                 </a>
               </div>
@@ -986,8 +996,72 @@ const PackageManagementCard = ({ snippet, onCopy, isCopied, onToggleFavorite, is
   );
 };
 
+// Command Explanation Modal
+const CommandExplanationModal = ({ isOpen, onClose, explanation }) => {
+  if (!isOpen || !explanation) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <HelpCircle size={24} className="text-green-400" />
+            <h2 className="text-lg sm:text-xl font-bold text-green-400">Command Breakdown</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-300 p-1"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 sm:p-6 space-y-3">
+          {explanation.parts.map((part, index) => (
+            <div key={index} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start gap-3">
+                <code className="text-green-400 font-mono text-sm font-bold bg-black/50 px-2 py-1 rounded flex-shrink-0">
+                  {part.text}
+                </code>
+                <div className="flex-1">
+                  <p className="text-gray-300 text-sm">{part.description}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 sm:p-6 border-t border-gray-800 bg-gray-950/50">
+          <p className="text-xs text-gray-500 text-center">
+            Understanding commands helps you use them safely and effectively
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Snippet card component
 const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory }) => {
+  const [inputValues, setInputValues] = useState({});
+  const [showExplanation, setShowExplanation] = useState(false);
+  
+  // Generate command based on inputs
+  const displayCommand = useMemo(() => {
+    if (snippet.interactive && snippet.commandTemplate) {
+      try {
+        return snippet.commandTemplate(inputValues);
+      } catch (e) {
+        console.error('Error generating command:', e);
+        return snippet.command;
+      }
+    }
+    return snippet.command;
+  }, [snippet, inputValues]);
+
   const getDangerBadge = (dangerLevel) => {
     if (!dangerLevel) return null;
     
@@ -1012,18 +1086,36 @@ const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, 
     return null;
   };
 
+  const handleInputChange = (param, value) => {
+    setInputValues(prev => ({
+      ...prev,
+      [param]: value
+    }));
+  };
+
   return (
     <div className="bg-gray-900/50 border border-green-500/20 rounded-lg p-3 sm:p-4 flex flex-col justify-between transition-all hover:border-green-500/50 hover:bg-gray-900">
       <div>
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-green-400 font-bold text-base sm:text-lg flex-1 pr-2">{snippet.title}</h3>
-          <button
-            onClick={() => onToggleFavorite(snippet.command)}
-            className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
-          </button>
+          <div className="flex items-center gap-1">
+            {snippet.explanation && (
+              <button
+                onClick={() => setShowExplanation(true)}
+                className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
+                title="Explain this command"
+              >
+                <HelpCircle size={16} className="text-blue-400" />
+              </button>
+            )}
+            <button
+              onClick={() => onToggleFavorite(snippet.command)}
+              className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
+              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 mb-2">
           {showCategory && snippet.category && (
@@ -1032,18 +1124,50 @@ const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, 
             </span>
           )}
           {getDangerBadge(snippet.dangerLevel)}
+          {snippet.interactive && (
+            <span className="inline-flex items-center gap-1 text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded border border-purple-500/50">
+              <CommandIcon size={10} />
+              Interactive
+            </span>
+          )}
         </div>
-        <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed">{snippet.description}</p>
+        <p className="text-gray-400 text-xs sm:text-sm mb-3 leading-relaxed">{snippet.description}</p>
+        
+        {/* Interactive Inputs */}
+        {snippet.interactive && snippet.inputs && (
+          <div className="mb-3 space-y-2 bg-gray-800/30 p-3 rounded-md border border-gray-700">
+            <p className="text-xs text-gray-500 mb-2">Customize this command:</p>
+            {snippet.inputs.map((input, index) => (
+              <div key={index}>
+                <label className="text-xs text-gray-400 mb-1 block">{input.label}:</label>
+                <input
+                  type="text"
+                  placeholder={input.placeholder}
+                  value={inputValues[input.param] || ''}
+                  onChange={(e) => handleInputChange(input.param, e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
-        <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{snippet.command}</code>
+        <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{displayCommand}</code>
         <button 
-          onClick={() => onCopy(snippet.command)}
+          onClick={() => onCopy(displayCommand)}
           className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
         >
           {isCopied ? '✓' : 'Copy'}
         </button>
       </div>
+      
+      {/* Explanation Modal */}
+      <CommandExplanationModal 
+        isOpen={showExplanation}
+        onClose={() => setShowExplanation(false)}
+        explanation={snippet.explanation}
+      />
     </div>
   );
 };
@@ -1113,7 +1237,12 @@ const detectOS = () => {
 };
 
 export default function App() {
-  const dataCategories = Object.keys(snippetsData);
+  // State for dynamic data loading
+  const [snippetsDataState, setSnippetsDataState] = useState(snippetsData);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [dataSource, setDataSource] = useState('local'); // 'local' or 'gist'
+  
+  const dataCategories = Object.keys(snippetsDataState);
   const specialCategories = ['All', 'Favorites', 'Recent'];
   const categories = [...specialCategories, ...dataCategories];
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -1171,12 +1300,41 @@ export default function App() {
     return detectedOS === 'not-linux' ? 'ubuntu' : detectedOS;
   };
 
+  // Load data from GitHub Gist on mount
+  useEffect(() => {
+    const loadDataFromGist = async () => {
+      // GitHub Gist URL - we'll create this after
+      const GIST_URL = 'https://gist.githubusercontent.com/aleattino/YOUR_GIST_ID/raw/snippets.json';
+      
+      try {
+        setIsLoadingData(true);
+        const response = await fetch(GIST_URL);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSnippetsDataState(data);
+          setDataSource('gist');
+          console.log('✅ Loaded commands from GitHub Gist');
+        } else {
+          console.log('ℹ️ Using local data (Gist not available)');
+        }
+      } catch (error) {
+        console.log('ℹ️ Using local data (Gist fetch failed):', error.message);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    // Try to load from Gist, but don't block the app if it fails
+    loadDataFromGist();
+  }, []);
+
   // Get all snippets with category info
   const allSnippets = useMemo(() => {
-    return Object.entries(snippetsData).flatMap(([category, commands]) =>
+    return Object.entries(snippetsDataState).flatMap(([category, commands]) =>
       commands.map(cmd => ({ ...cmd, category }))
     );
-  }, []);
+  }, [snippetsDataState]);
 
   // Get count for a category
   const getCategoryCount = (category) => {

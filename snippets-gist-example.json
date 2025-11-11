@@ -1,0 +1,76 @@
+{
+  "Package Management": [
+    {
+      "title": "Update package list",
+      "description": "Refreshes the list of available software packages from repositories. Always run this before installing or upgrading software to ensure you get the latest versions.",
+      "variants": {
+        "ubuntu": "sudo apt update",
+        "fedora": "sudo dnf check-update",
+        "arch": "sudo pacman -Sy"
+      }
+    },
+    {
+      "title": "Upgrade all software",
+      "description": "Updates all installed packages to their latest available versions. This keeps your system secure and up-to-date with bug fixes and new features.",
+      "variants": {
+        "ubuntu": "sudo apt upgrade -y",
+        "fedora": "sudo dnf upgrade -y",
+        "arch": "sudo pacman -Syu"
+      }
+    }
+  ],
+  "System Info": [
+    {
+      "title": "Show system information",
+      "description": "Displays your operating system, kernel version, and architecture. Useful to know what system you're running.",
+      "command": "uname -a"
+    },
+    {
+      "title": "Check system uptime",
+      "description": "Shows how long your system has been running and current load. Good for checking system stability.",
+      "command": "uptime"
+    },
+    {
+      "title": "Who am I?",
+      "description": "Displays your current username. Helpful when switching between users.",
+      "command": "whoami"
+    }
+  ],
+  "Files & Folders": [
+    {
+      "title": "List all files (detailed)",
+      "description": "Shows all files including hidden ones, with permissions, size, owner, and modification date.",
+      "command": "ls -la"
+    },
+    {
+      "title": "Where am I?",
+      "description": "Shows the full path of your current directory. Never get lost again!",
+      "command": "pwd"
+    },
+    {
+      "title": "Delete file",
+      "description": "Permanently deletes a file. Be careful, there's no trash bin!",
+      "command": "rm filename.txt",
+      "dangerLevel": "caution"
+    },
+    {
+      "title": "Delete folder",
+      "description": "⚠️ DANGER: Deletes a directory and everything inside it recursively WITHOUT asking for confirmation. This action is irreversible!",
+      "command": "rm -rf folder-name/",
+      "dangerLevel": "danger"
+    }
+  ],
+  "Network": [
+    {
+      "title": "Test internet connection",
+      "description": "Sends 4 test packets to Google to check if internet is working. Shows response time (latency) in milliseconds and packet loss.",
+      "command": "ping -c 4 google.com"
+    },
+    {
+      "title": "Show my IP address",
+      "description": "Displays all network interfaces and their IP addresses. Look for 'inet' for IPv4 addresses.",
+      "command": "ip addr show"
+    }
+  ]
+}
+
