@@ -33,7 +33,8 @@ import {
   Shield,
   X,
   Menu,
-  HelpCircle
+  HelpCircle,
+  Sliders
 } from 'lucide-react';
 import { snippetsData, packageManagementCommands } from './data/snippets';
 import { workflows } from './data/workflows';
@@ -536,7 +537,7 @@ const InfoModal = ({ isOpen, onClose, totalCommands }) => {
             <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
             <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.3.1</span></span>
+              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.3.2</span></span>
               <span className="text-gray-600">•</span>
               <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
             </div>
@@ -886,13 +887,35 @@ const CommandPalette = ({ isOpen, onClose, snippets, onSelect, searchValue, onSe
 // Package Management Card with distro variants
 const PackageManagementCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory, detectedOS }) => {
   const [selectedDistro, setSelectedDistro] = React.useState(detectedOS);
+  const [inputValues, setInputValues] = useState({});
+  const [showCustomization, setShowCustomization] = useState(false);
   
   React.useEffect(() => {
     setSelectedDistro(detectedOS);
   }, [detectedOS]);
   
+  // Generate command based on inputs and distro
+  const displayCommand = useMemo(() => {
+    if (snippet.interactive && snippet.commandTemplate) {
+      try {
+        return snippet.commandTemplate(inputValues, selectedDistro);
+      } catch (e) {
+        console.error('Error generating command:', e);
+        return snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
+      }
+    }
+    return snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
+  }, [snippet, inputValues, selectedDistro]);
+  
   const command = snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
   const commandForFavorite = snippet.variants?.ubuntu || snippet.command; // Use ubuntu as base for favorites
+  
+  const handleInputChange = (param, value) => {
+    setInputValues(prev => ({
+      ...prev,
+      [param]: value
+    }));
+  };
   
   const getDangerBadge = (dangerLevel) => {
     if (!dangerLevel) return null;
@@ -983,15 +1006,41 @@ const PackageManagementCard = ({ snippet, onCopy, isCopied, onToggleFavorite, is
           </div>
         )}
       </div>
-      <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
-        <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{command}</code>
-        <button 
-          onClick={() => onCopy(command)}
-          className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
-        >
-          {isCopied ? '✓' : 'Copy'}
-        </button>
+      
+      <div className="space-y-2">
+        <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
+          <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{command}</code>
+          <button 
+            onClick={() => onCopy(command)}
+            className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            {isCopied ? '✓' : 'Copy'}
+          </button>
+        </div>
+        
+        {/* Customize Button for Interactive Commands */}
+        {snippet.interactive && (
+          <button
+            onClick={() => setShowCustomization(true)}
+            className="w-full py-2 px-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors border border-purple-500/50 flex items-center justify-center gap-2"
+          >
+            <Sliders size={14} />
+            Customize Command
+          </button>
+        )}
       </div>
+      
+      {/* Customization Modal */}
+      <CommandCustomizationModal
+        isOpen={showCustomization}
+        onClose={() => setShowCustomization(false)}
+        snippet={snippet}
+        inputValues={inputValues}
+        onInputChange={handleInputChange}
+        displayCommand={displayCommand}
+        onCopy={onCopy}
+        isCopied={isCopied}
+      />
     </div>
   );
 };
@@ -1054,7 +1103,7 @@ const CommandCustomizationModal = ({ isOpen, onClose, snippet, inputValues, onIn
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CommandIcon size={24} className="text-purple-400" />
+            <Sliders size={24} className="text-purple-400" />
             <h2 className="text-lg sm:text-xl font-bold text-green-400">Customize Command</h2>
           </div>
           <button
@@ -1205,12 +1254,6 @@ const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, 
             </span>
           )}
           {getDangerBadge(snippet.dangerLevel)}
-          {snippet.interactive && (
-            <span className="inline-flex items-center gap-1 text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded border border-purple-500/50">
-              <CommandIcon size={10} />
-              Interactive
-            </span>
-          )}
         </div>
         <p className="text-gray-400 text-xs sm:text-sm mb-3 leading-relaxed">{snippet.description}</p>
       </div>
@@ -1232,7 +1275,7 @@ const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, 
             onClick={() => setShowCustomization(true)}
             className="w-full py-2 px-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors border border-purple-500/50 flex items-center justify-center gap-2"
           >
-            <CommandIcon size={14} />
+            <Sliders size={14} />
             Customize Command
           </button>
         )}

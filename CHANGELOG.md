@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2025-11-11
+
+### 🎉 Added
+- **60+ Interactive Commands** - Massive expansion of customizable commands
+  - Added interactive support to Flatpak commands (5 commands)
+  - Added interactive support to Ubuntu Specific (apt, snap - 6 commands)
+  - Added interactive support to Fedora Specific (dnf - 4 commands)
+  - Added interactive support to Users & Permissions (5 commands)
+  - Added interactive support to Package Management multi-distro commands (4 commands)
+  - Total: 60+ commands now support customization
+
+### ✨ Improved
+- **Cleaner UI** - Removed redundant "Interactive" badge
+  - Badge was using same icon as other features
+  - Customize button is sufficient visual indicator
+  - Improved visual consistency across all cards
+  
+- **Package Management Cards** - Now support interactive customization
+  - Added state management for input values
+  - Added "Customize Command" button
+  - Commands adapt to selected distro (Ubuntu/Fedora/Arch)
+  - Modal generates correct command for each distribution
+
+### 🔧 Technical
+- Changed customize icon from `CommandIcon` to `Sliders` for better semantics
+- Enhanced `PackageManagementCard` component with interactive support
+- Added `commandTemplate` with distro parameter for multi-distro commands
+
+---
+
 ## [1.3.1] - 2025-11-11
 
 ### ✨ Improved

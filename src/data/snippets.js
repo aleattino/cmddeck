@@ -25,6 +25,16 @@ export const packageManagementCommands = [
       ubuntu: "sudo apt install package-name -y",
       fedora: "sudo dnf install package-name -y",
       arch: "sudo pacman -S package-name"
+    },
+    interactive: true,
+    inputs: [
+      { label: "Package name", placeholder: "package-name", param: "package" }
+    ],
+    commandTemplate: (params, distro) => {
+      const pkg = params.package || 'package-name';
+      if (distro === 'fedora') return `sudo dnf install ${pkg} -y`;
+      if (distro === 'arch') return `sudo pacman -S ${pkg}`;
+      return `sudo apt install ${pkg} -y`;
     }
   },
   {
@@ -34,6 +44,16 @@ export const packageManagementCommands = [
       ubuntu: "sudo apt remove package-name",
       fedora: "sudo dnf remove package-name",
       arch: "sudo pacman -R package-name"
+    },
+    interactive: true,
+    inputs: [
+      { label: "Package name", placeholder: "package-name", param: "package" }
+    ],
+    commandTemplate: (params, distro) => {
+      const pkg = params.package || 'package-name';
+      if (distro === 'fedora') return `sudo dnf remove ${pkg}`;
+      if (distro === 'arch') return `sudo pacman -R ${pkg}`;
+      return `sudo apt remove ${pkg}`;
     }
   },
   {
@@ -43,6 +63,16 @@ export const packageManagementCommands = [
       ubuntu: "apt search keyword",
       fedora: "dnf search keyword",
       arch: "pacman -Ss keyword"
+    },
+    interactive: true,
+    inputs: [
+      { label: "Search keyword", placeholder: "keyword", param: "keyword" }
+    ],
+    commandTemplate: (params, distro) => {
+      const kw = params.keyword || 'keyword';
+      if (distro === 'fedora') return `dnf search ${kw}`;
+      if (distro === 'arch') return `pacman -Ss ${kw}`;
+      return `apt search ${kw}`;
     }
   },
   {
@@ -52,6 +82,16 @@ export const packageManagementCommands = [
       ubuntu: "apt show package-name",
       fedora: "dnf info package-name",
       arch: "pacman -Si package-name"
+    },
+    interactive: true,
+    inputs: [
+      { label: "Package name", placeholder: "package-name", param: "package" }
+    ],
+    commandTemplate: (params, distro) => {
+      const pkg = params.package || 'package-name';
+      if (distro === 'fedora') return `dnf info ${pkg}`;
+      if (distro === 'arch') return `pacman -Si ${pkg}`;
+      return `apt show ${pkg}`;
     }
   },
   {
@@ -623,12 +663,22 @@ export const snippetsData = {
     {
       title: "Switch to another user",
       description: "Logs in as a different user account. You'll need their password. The '-' flag loads that user's environment variables and settings.",
-      command: "su - username"
+      command: "su - username",
+      interactive: true,
+      inputs: [
+        { label: "Username", placeholder: "username", param: "user" }
+      ],
+      commandTemplate: (params) => `su - ${params.user || 'username'}`
     },
     {
       title: "Run command as admin",
       description: "Executes a command with administrator (root) privileges. You'll be prompted for your password. Required for system-level changes like installing software or editing protected files.",
-      command: "sudo command-here"
+      command: "sudo command-here",
+      interactive: true,
+      inputs: [
+        { label: "Command to run", placeholder: "command-here", param: "cmd" }
+      ],
+      commandTemplate: (params) => `sudo ${params.cmd || 'command-here'}`
     },
     {
       title: "Become root user",
@@ -645,17 +695,34 @@ export const snippetsData = {
       title: "Change file ownership",
       description: "Changes who owns a file. Can affect file accessibility. Usually requires sudo. Make sure you understand ownership before changing it.",
       command: "sudo chown username:groupname filename",
-      dangerLevel: "caution"
+      dangerLevel: "caution",
+      interactive: true,
+      inputs: [
+        { label: "Username", placeholder: "username", param: "user" },
+        { label: "Group name", placeholder: "groupname", param: "group" },
+        { label: "Filename", placeholder: "filename", param: "file" }
+      ],
+      commandTemplate: (params) => `sudo chown ${params.user || 'username'}:${params.group || 'groupname'} ${params.file || 'filename'}`
     },
     {
       title: "Make file read-only",
       description: "Sets file permissions so only owner can write, everyone can read. The 644 means: owner (6=rw-), group (4=r--), others (4=r--). Standard for most files.",
-      command: "chmod 644 filename"
+      command: "chmod 644 filename",
+      interactive: true,
+      inputs: [
+        { label: "Filename", placeholder: "filename", param: "file" }
+      ],
+      commandTemplate: (params) => `chmod 644 ${params.file || 'filename'}`
     },
     {
       title: "Make file private",
       description: "Makes file readable and writable only by you, nobody else can even view it. The 600 means: owner (6=rw-), group (0=---), others (0=---). Good for sensitive data like SSH keys.",
-      command: "chmod 600 filename"
+      command: "chmod 600 filename",
+      interactive: true,
+      inputs: [
+        { label: "Filename", placeholder: "filename", param: "file" }
+      ],
+      commandTemplate: (params) => `chmod 600 ${params.file || 'filename'}`
     }
   ],
   "System Services": [
@@ -776,12 +843,22 @@ export const snippetsData = {
     {
       title: "Install Flatpak app",
       description: "Installs an application from Flathub repository.",
-      command: "flatpak install flathub com.example.App"
+      command: "flatpak install flathub com.example.App",
+      interactive: true,
+      inputs: [
+        { label: "App ID", placeholder: "com.example.App", param: "appid" }
+      ],
+      commandTemplate: (params) => `flatpak install flathub ${params.appid || 'com.example.App'}`
     },
     {
       title: "Search Flatpak apps",
       description: "Searches for available applications on Flathub.",
-      command: "flatpak search keyword"
+      command: "flatpak search keyword",
+      interactive: true,
+      inputs: [
+        { label: "Search keyword", placeholder: "keyword", param: "keyword" }
+      ],
+      commandTemplate: (params) => `flatpak search ${params.keyword || 'keyword'}`
     },
     {
       title: "List installed Flatpaks",
@@ -796,17 +873,32 @@ export const snippetsData = {
     {
       title: "Remove Flatpak app",
       description: "Uninstalls a Flatpak application from the system.",
-      command: "flatpak uninstall com.example.App"
+      command: "flatpak uninstall com.example.App",
+      interactive: true,
+      inputs: [
+        { label: "App ID", placeholder: "com.example.App", param: "appid" }
+      ],
+      commandTemplate: (params) => `flatpak uninstall ${params.appid || 'com.example.App'}`
     },
     {
       title: "Run Flatpak app",
       description: "Launches a Flatpak application from command line.",
-      command: "flatpak run com.example.App"
+      command: "flatpak run com.example.App",
+      interactive: true,
+      inputs: [
+        { label: "App ID", placeholder: "com.example.App", param: "appid" }
+      ],
+      commandTemplate: (params) => `flatpak run ${params.appid || 'com.example.App'}`
     },
     {
       title: "Show Flatpak app info",
       description: "Displays detailed information about a Flatpak application.",
-      command: "flatpak info com.example.App"
+      command: "flatpak info com.example.App",
+      interactive: true,
+      inputs: [
+        { label: "App ID", placeholder: "com.example.App", param: "appid" }
+      ],
+      commandTemplate: (params) => `flatpak info ${params.appid || 'com.example.App'}`
     },
     {
       title: "Add Flathub repository",
@@ -838,18 +930,33 @@ export const snippetsData = {
     {
       title: "Install a program",
       description: "Installs new software. Replace 'package-name' with actual program name.",
-      command: "sudo apt install package-name -y"
+      command: "sudo apt install package-name -y",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `sudo apt install ${params.package || 'package-name'} -y`
     },
     {
       title: "Remove a program",
       description: "Uninstalls software but keeps configuration files.",
-      command: "sudo apt remove package-name"
+      command: "sudo apt remove package-name",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `sudo apt remove ${params.package || 'package-name'}`
     },
     {
       title: "Remove program completely",
       description: "Uninstalls software and permanently deletes all its configuration files. You won't be able to recover settings if you reinstall later.",
       command: "sudo apt purge package-name",
-      dangerLevel: "caution"
+      dangerLevel: "caution",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `sudo apt purge ${params.package || 'package-name'}`
     },
     {
       title: "Clean up unused packages",
@@ -859,12 +966,22 @@ export const snippetsData = {
     {
       title: "Search for software",
       description: "Searches available packages matching a keyword.",
-      command: "apt search keyword"
+      command: "apt search keyword",
+      interactive: true,
+      inputs: [
+        { label: "Search keyword", placeholder: "keyword", param: "keyword" }
+      ],
+      commandTemplate: (params) => `apt search ${params.keyword || 'keyword'}`
     },
     {
       title: "Show package info",
       description: "Shows detailed information about a package before installing.",
-      command: "apt show package-name"
+      command: "apt show package-name",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `apt show ${params.package || 'package-name'}`
     },
     {
       title: "Fix broken packages",
@@ -874,7 +991,12 @@ export const snippetsData = {
     {
       title: "Install snap app",
       description: "Installs software from Snap Store (Ubuntu's app store).",
-      command: "sudo snap install app-name"
+      command: "sudo snap install app-name",
+      interactive: true,
+      inputs: [
+        { label: "App name", placeholder: "app-name", param: "app" }
+      ],
+      commandTemplate: (params) => `sudo snap install ${params.app || 'app-name'}`
     },
     {
       title: "List installed snaps",
@@ -911,22 +1033,42 @@ export const snippetsData = {
     {
       title: "Install a program",
       description: "Installs new software. Replace 'package-name' with actual program name.",
-      command: "sudo dnf install package-name -y"
+      command: "sudo dnf install package-name -y",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `sudo dnf install ${params.package || 'package-name'} -y`
     },
     {
       title: "Remove a program",
       description: "Uninstalls software from the system.",
-      command: "sudo dnf remove package-name"
+      command: "sudo dnf remove package-name",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `sudo dnf remove ${params.package || 'package-name'}`
     },
     {
       title: "Search for software",
       description: "Searches available packages matching a keyword.",
-      command: "dnf search keyword"
+      command: "dnf search keyword",
+      interactive: true,
+      inputs: [
+        { label: "Search keyword", placeholder: "keyword", param: "keyword" }
+      ],
+      commandTemplate: (params) => `dnf search ${params.keyword || 'keyword'}`
     },
     {
       title: "Show package info",
       description: "Shows detailed information about a package.",
-      command: "dnf info package-name"
+      command: "dnf info package-name",
+      interactive: true,
+      inputs: [
+        { label: "Package name", placeholder: "package-name", param: "package" }
+      ],
+      commandTemplate: (params) => `dnf info ${params.package || 'package-name'}`
     },
     {
       title: "List installed packages",
