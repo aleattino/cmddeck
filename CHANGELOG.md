@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.4.0] - 2026-09-28
 
 ### 🐛 Fixed
 - **Analytics consent**: Google Analytics set cookies and sent data before consent. It now loads only after Accept, never on localhost, and leftover `_ga` cookies are removed for everyone who hasn't accepted
