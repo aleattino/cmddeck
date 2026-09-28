@@ -6,7 +6,10 @@ export const packageManagementCommands = [
     variants: {
       ubuntu: "sudo apt update",
       fedora: "sudo dnf check-update",
-      arch: "sudo pacman -Sy"
+      arch: "checkupdates"
+    },
+    variantNotes: {
+      arch: "checkupdates comes with pacman-contrib. Avoid running pacman -Sy on its own: Arch doesn't support partial upgrades."
     }
   },
   {
@@ -106,10 +109,14 @@ export const packageManagementCommands = [
   {
     title: "Remove unused packages",
     description: "Removes packages that were automatically installed as dependencies but are no longer needed. Helps keep system clean and saves disk space.",
+    dangerLevel: "caution",
     variants: {
-      ubuntu: "sudo apt autoremove -y",
-      fedora: "sudo dnf autoremove -y",
-      arch: "sudo pacman -Qdtq | sudo pacman -Rs -"
+      ubuntu: "sudo apt autoremove",
+      fedora: "sudo dnf autoremove",
+      arch: "pacman -Qdtq | sudo pacman -Rns -"
+    },
+    variantNotes: {
+      arch: "If there are no orphans, pacman prints “argument '-' specified with empty stdin”. That's expected."
     }
   }
 ];
@@ -230,7 +237,7 @@ export const snippetsData = {
     },
     {
       title: "Delete folder",
-      description: "⚠️ DANGER: Deletes a directory and everything inside it recursively WITHOUT asking for confirmation. This action is irreversible!",
+      description: "Deletes a directory and everything inside it, recursively and without asking for confirmation. There is no undo.",
       command: "rm -rf folder-name/",
       dangerLevel: "danger",
       interactive: true,
@@ -260,7 +267,7 @@ export const snippetsData = {
         { label: "Search pattern", placeholder: "*.txt", param: "pattern" },
         { label: "Start directory", placeholder: "~", param: "directory" }
       ],
-      commandTemplate: (params) => `find ${params.directory || '~'} -name "${params.pattern || '*.txt'}"`,
+      commandTemplate: (params) => `find ${params.directory || '~'} -name ${params.pattern || '"*.txt"'}`,
       explanation: {
         parts: [
           { text: "find", description: "Command to search for files and directories in a directory hierarchy" },
@@ -311,7 +318,7 @@ export const snippetsData = {
         { label: "Text to search", placeholder: "search text", param: "text" },
         { label: "Directory", placeholder: ".", param: "directory" }
       ],
-      commandTemplate: (params) => `grep -r "${params.text || 'search text'}" ${params.directory || '.'}`,
+      commandTemplate: (params) => `grep -r ${params.text || '"search text"'} ${params.directory || '.'}`,
       explanation: {
         parts: [
           { text: "grep", description: "Command to search for text patterns in files" },
@@ -330,7 +337,7 @@ export const snippetsData = {
         { label: "Text to search", placeholder: "search text", param: "text" },
         { label: "Directory", placeholder: ".", param: "directory" }
       ],
-      commandTemplate: (params) => `grep -ri "${params.text || 'search text'}" ${params.directory || '.'}`,
+      commandTemplate: (params) => `grep -ri ${params.text || '"search text"'} ${params.directory || '.'}`,
       explanation: {
         parts: [
           { text: "grep", description: "Command to search for text patterns" },
@@ -403,13 +410,13 @@ export const snippetsData = {
     },
     {
       title: "Follow file changes",
-      description: "Watches a file and shows new lines as they're added. Great for logs!",
-      command: "tail -f /var/log/syslog",
+      description: "Watches a file and shows new lines as they're added. Great for application logs! Press Ctrl+C to stop.",
+      command: "tail -f app.log",
       interactive: true,
       inputs: [
-        { label: "Log file path", placeholder: "/var/log/syslog", param: "logfile" }
+        { label: "Log file path", placeholder: "app.log", param: "logfile" }
       ],
-      commandTemplate: (params) => `tail -f ${params.logfile || '/var/log/syslog'}`
+      commandTemplate: (params) => `tail -f ${params.logfile || 'app.log'}`
     },
     {
       title: "Edit with nano (easy)",
@@ -430,7 +437,7 @@ export const snippetsData = {
         { label: "Text to add", placeholder: "Hello World", param: "text" },
         { label: "Filename", placeholder: "filename.txt", param: "filename" }
       ],
-      commandTemplate: (params) => `echo "${params.text || 'Hello World'}" >> ${params.filename || 'filename.txt'}`
+      commandTemplate: (params) => `echo ${params.text || '"Hello World"'} >> ${params.filename || 'filename.txt'}`
     },
     {
       title: "Count lines in file",
@@ -676,13 +683,13 @@ export const snippetsData = {
       command: "sudo command-here",
       interactive: true,
       inputs: [
-        { label: "Command to run", placeholder: "command-here", param: "cmd" }
+        { label: "Command to run", placeholder: "command-here", param: "cmd", raw: true }
       ],
       commandTemplate: (params) => `sudo ${params.cmd || 'command-here'}`
     },
     {
       title: "Become root user",
-      description: "⚠️ DANGER: Switches to superuser mode with unlimited system access. Any command you run can permanently damage your system. Use only when absolutely necessary!",
+      description: "Switches to a root shell with unlimited system access. Any command you run there can permanently damage your system, so use it only when you really need it.",
       command: "sudo su -",
       dangerLevel: "danger"
     },
@@ -805,8 +812,8 @@ export const snippetsData = {
   "System Logs": [
     {
       title: "View system log",
-      description: "Shows the main system log with important system messages, errors, and warnings. On Ubuntu/Debian, this is /var/log/syslog. Use arrow keys to scroll, 'q' to quit.",
-      command: "sudo less /var/log/syslog"
+      description: "Opens the system journal at the most recent entries, with messages, errors, and warnings from every service. Works on any systemd distro. Use arrow keys to scroll, 'q' to quit.",
+      command: "journalctl -e"
     },
     {
       title: "View boot messages",
@@ -820,8 +827,8 @@ export const snippetsData = {
     },
     {
       title: "Search logs for errors",
-      description: "Case-insensitive search for 'error' in system logs. Change 'error' to search for other keywords like 'fail', 'warning', or specific service names.",
-      command: 'sudo grep -i "error" /var/log/syslog'
+      description: "Shows only error-level messages (and worse) since the last boot. Use -p warning to include warnings, or drop -b to search older boots too.",
+      command: "journalctl -p err -b"
     },
     {
       title: "View kernel messages",
@@ -1010,8 +1017,9 @@ export const snippetsData = {
     },
     {
       title: "Enable firewall",
-      description: "Activates Ubuntu's firewall (UFW) for security.",
-      command: "sudo ufw enable"
+      description: "Activates Ubuntu's firewall (UFW). If you're connected over SSH, run 'sudo ufw allow 22' first or you'll lock yourself out.",
+      command: "sudo ufw enable",
+      dangerLevel: "caution"
     },
     {
       title: "Allow port through firewall",
@@ -1027,8 +1035,8 @@ export const snippetsData = {
   "Fedora Specific": [
     {
       title: "Update system",
-      description: "Updates all packages to latest versions. DNF is Fedora's package manager.",
-      command: "sudo dnf update -y"
+      description: "Upgrades all packages to their latest versions. DNF is Fedora's package manager.",
+      command: "sudo dnf upgrade -y"
     },
     {
       title: "Install a program",
@@ -1087,13 +1095,14 @@ export const snippetsData = {
     },
     {
       title: "Undo last update",
-      description: "Reverses the most recent package installation or update.",
-      command: "sudo dnf history undo last"
+      description: "Reverses the most recent package installation or update. Check 'dnf history' first to see what will be rolled back.",
+      command: "sudo dnf history undo last",
+      dangerLevel: "caution"
     },
     {
       title: "Install development tools",
       description: "Installs essential tools for compiling software (gcc, make, etc.).",
-      command: 'sudo dnf groupinstall "Development Tools" -y'
+      command: "sudo dnf group install -y development-tools"
     },
     {
       title: "Install RPM file",

@@ -1,47 +1,32 @@
-# 🚀 Quick Start - CmdDeck
+# Quick Start - CmdDeck
 
-## Install and Run (30 seconds)
+## Install and run
 
 ```bash
-# 1. Navigate to webapp folder
-cd webapp
-
-# 2. Install dependencies
 npm install
-
-# 3. Start the app
 npm run dev
 ```
 
-The app will automatically open at `http://localhost:3000` 🎉
+The app opens at `http://localhost:3000`.
 
-## What You'll See
+## What you'll see
 
-- **50+ Commands** organized in 8 categories
-- **Search bar** at the top
-- **Categories sidebar** on the left
-- **Command cards** with:
-  - Title
-  - Detailed explanation
-  - Copy button
-  - Tags
+- **130+ commands** in 14 categories, plus Favorites and Recent
+- A **filter field** above the commands, and a **quick-copy palette** (Ctrl+K / ⌘K or /)
+- **Command cards** with a description, a Copy button, distro tabs for package commands and a Customize dialog for commands that take your own values
+- **Workflows**: step-by-step command sequences for common tasks
 
-## How to Use
+## How to use
 
-1. **Browse**: Click a category on the left
-2. **Search**: Type in the search bar (e.g., "git", "compress")
-3. **Copy**: Click the "Copy" button on any command
-4. **Paste**: Use in your terminal (Ctrl+Shift+V on Linux)
+1. **Browse**: pick a category in the sidebar (or the menu on phones)
+2. **Search**: type in the filter field, e.g. `tar`, `disk space` or `pacman`
+3. **Copy**: click Copy on any command, or press Enter in the palette
+4. **Paste**: in your terminal (Ctrl+Shift+V on most Linux terminals)
 
-## Production Build
+## Production build
 
 ```bash
 npm run build
 ```
 
-Deploy the `dist` folder to any static hosting (Netlify, Vercel, GitHub Pages).
-
----
-
-**That's it! Enjoy! 🎉**
-
+Deploy the `dist` folder to any static hosting (Vercel, Netlify, GitHub Pages).

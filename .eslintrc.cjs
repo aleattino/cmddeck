@@ -11,11 +11,16 @@ module.exports = {
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   settings: { react: { version: '18.2' } },
   plugins: ['react-refresh'],
+  globals: { __APP_VERSION__: 'readonly' },
   rules: {
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
+    // The app doesn't use PropTypes; component contracts live in the call sites.
+    'react/prop-types': 'off',
+    'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
   },
-}
-
+  overrides: [
+    {
+      files: ['vite.config.js', 'tailwind.config.js', 'postcss.config.js'],
+      env: { node: true },
+    },
+  ],
+};

@@ -1,2075 +1,651 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Monitor, 
-  Folder, 
-  Search, 
-  FileText, 
-  Cpu, 
-  Wifi, 
-  Archive, 
-  Users, 
-  Settings, 
-  FileStack,
-  Star,
-  Clock,
-  Command as CommandIcon,
-  Save,
-  Trash2,
-  Globe,
-  Lock,
-  Container,
-  Activity,
-  Box,
-  Info,
-  Keyboard,
-  ExternalLink,
-  User,
-  Check,
-  AlertTriangle,
-  AlertOctagon,
-  Terminal,
-  AlertCircle,
-  Cookie,
-  Shield,
-  X,
-  Menu,
-  HelpCircle,
-  Sliders
-} from 'lucide-react';
-import { snippetsData, packageManagementCommands } from './data/snippets';
-import { workflows } from './data/workflows';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { CloseIcon, RecentIcon, SearchIcon, SettingsIcon, StarIcon, WorkflowIcon } from './components/Icons';
+import {
+  allSnippets,
+  categoryBySlug,
+  dataCategories,
+  migrateLegacyCommands,
+  slugify,
+  snippetsById,
+  workflows,
+} from './data';
+import { DISTROS, detectOS, modKeyLabel } from './lib/os';
+import { matchingDistro, matches, queryTerms } from './lib/search';
+import { copyText } from './lib/clipboard';
+import { readJSON, readString, removeKey, writeJSON, writeString } from './lib/storage';
+import { getConsent, setConsent as persistConsent } from './lib/analytics';
+import { withViewTransition } from './lib/motion';
+import {
+  DEFAULT_PREFERENCES,
+  PREFERENCES_KEY,
+  PreferencesContext,
+  SETTINGS_SECTION_IDS,
+  loadPreferences,
+  sanitizePreferences,
+} from './lib/preferences';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { CommandCard } from './components/CommandCard';
+import { CommandPalette } from './components/CommandPalette';
+import { WorkflowsDialog } from './components/WorkflowsDialog';
+import { SettingsDialog } from './components/SettingsDialog';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { OSSelector } from './components/OSSelector';
+import { CategorySelect, CategorySidebar } from './components/CategoryNav';
+import { CookieConsent } from './components/CookieConsent';
+import { LegalDialog } from './components/LegalDialog';
+import { SiteFooter } from './components/SiteFooter';
+import { Toast } from './components/Toast';
+import { Kbd } from './components/Kbd';
 
-// Custom logo components using real images
-const UbuntuLogo = ({ size = 16, className = "" }) => (
-  <img 
-    src="/128px-Ubuntu-logo-no-wordmark-solid-o-2022.svg.png" 
-    alt="Ubuntu"
-    width={size} 
-    height={size}
-    className={className}
-    style={{ display: 'inline-block' }}
-  />
-);
+const FAVORITES_KEY = 'cmddeckFavorites';
+const RECENT_KEY = 'cmddeckRecent';
+const PROGRESS_KEY = 'cmddeckWorkflowProgress';
+const OS_KEY = 'selectedOS';
+const RECENT_LIMIT = 12;
+const SPECIAL = ['All', 'Favorites', 'Recent'];
+// Only the first cards get their own view transition: enough to cover the
+// viewport without snapshotting the whole list.
+const MORPHING_CARDS = 24;
 
-const FedoraLogo = ({ size = 16, className = "" }) => (
-  <img 
-    src="/128px-Fedora_icon_(2021).svg.png" 
-    alt="Fedora"
-    width={size} 
-    height={size}
-    className={className}
-    style={{ display: 'inline-block' }}
-  />
-);
+function loadIds(key, legacyKey) {
+  const stored = readJSON(key, null);
+  if (Array.isArray(stored)) return stored.filter((id) => typeof id === 'string');
+  const migrated = migrateLegacyCommands(readJSON(legacyKey, []));
+  writeJSON(key, migrated);
+  removeKey(legacyKey);
+  return migrated;
+}
 
-const FlatpakLogo = ({ size = 16, className = "" }) => (
-  <img 
-    src="/flatpak.svg" 
-    alt="Flatpak"
-    width={size} 
-    height={size}
-    className={className}
-    style={{ display: 'inline-block' }}
-  />
-);
+function loadProgress() {
+  const stored = readJSON(PROGRESS_KEY, {});
+  return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+}
 
-const ArchLogo = ({ size = 16, className = "" }) => (
-  <img 
-    src="/128px-Arch_Linux__Crystal__icon.svg.png" 
-    alt="Arch Linux"
-    width={size} 
-    height={size}
-    className={className}
-    style={{ display: 'inline-block' }}
-  />
-);
-
-// Blinking cursor component
-const BlinkingCursor = () => (
-  <>
-    <style>{`
-      @keyframes blink { 50% { opacity: 0; } }
-      .blinking-cursor { animation: blink 1s step-end infinite; }
-    `}</style>
-    <span className="blinking-cursor text-green-400">_</span>
-  </>
-);
-
-// Toast notification component
-const Toast = ({ message, isVisible }) => {
-  if (!isVisible) return null;
-  
-  return (
-    <div className="fixed top-4 right-4 z-[100] animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="bg-gray-900 border border-green-500/50 rounded-lg px-4 py-3 shadow-2xl flex items-center gap-3 min-w-[200px]">
-        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-          <Check size={14} className="text-black" strokeWidth={3} />
-        </div>
-        <span className="text-green-400 font-medium text-sm">{message}</span>
-      </div>
-    </div>
-  );
-};
-
-// Cookie Consent Banner
-const CookieConsent = ({ isVisible, onAccept, onDecline }) => {
-  if (!isVisible) return null;
-
-  return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-green-500/30 z-50 p-4 sm:p-6 shadow-2xl">
-      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3 flex-1">
-          <Cookie size={24} className="text-green-400 flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="text-green-400 font-semibold mb-1">Cookie Consent</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              We use cookies and Google Analytics to improve your experience and understand how you use CmdDeck. 
-              By accepting, you agree to our use of cookies. 
-              <a href="#" onClick={(e) => { e.preventDefault(); }} className="text-green-400 hover:underline ml-1">Learn more</a>
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-3 w-full sm:w-auto">
-          <button
-            onClick={onDecline}
-            className="flex-1 sm:flex-none px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md text-sm transition-colors"
-          >
-            Decline
-          </button>
-          <button
-            onClick={onAccept}
-            className="flex-1 sm:flex-none px-6 py-2 bg-green-500 hover:bg-green-600 text-black font-semibold rounded-md text-sm transition-colors"
-          >
-            Accept
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Privacy Policy Modal
-const PrivacyPolicyModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-3xl my-8 shadow-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <Shield size={24} className="text-green-400" />
-            <h2 className="text-xl font-bold text-green-400">Privacy Policy</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 p-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6 overflow-y-auto">
-          <div className="text-gray-400 space-y-4 text-sm leading-relaxed">
-            <p className="text-gray-300">
-              <strong>Effective Date:</strong> October 15, 2025
-            </p>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">1. Data Controller</h3>
-              <p>
-                This application is operated by an individual developer. For inquiries regarding your personal data, 
-                please contact us via the <a href="https://github.com/aleattino/cmddeck" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">GitHub repository</a>.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">2. Legal Basis for Processing</h3>
-              <p>
-                We process your data based on the following legal grounds under GDPR:
-              </p>
-              <ul className="list-disc list-inside space-y-1 ml-4 mt-2">
-                <li><strong>Legitimate Interest</strong> (Art. 6(1)(f) GDPR) - For essential app functionality stored locally</li>
-                <li><strong>Consent</strong> (Art. 6(1)(a) GDPR) - For analytics cookies and tracking</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">3. Data We Collect</h3>
-              
-              <div className="mb-3">
-                <p className="font-semibold mb-1">3.1 Essential Data (No Consent Required)</p>
-                <p className="text-sm mb-2">Stored locally in your browser via localStorage:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-                  <li>Favorite commands</li>
-                  <li>Recently used commands</li>
-                  <li>Operating system preference</li>
-                  <li>Cookie consent choice</li>
-                </ul>
-                <p className="text-xs text-gray-500 mt-2">This data never leaves your device and is essential for app functionality.</p>
-              </div>
-
-              <div>
-                <p className="font-semibold mb-1">3.2 Analytics Data (Requires Consent)</p>
-                <p className="text-sm mb-2">Collected via Google Analytics only if you accept cookies:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-                  <li>Page views and session duration</li>
-                  <li>Browser type and device information</li>
-                  <li>Approximate geographic location (country/region level)</li>
-                  <li>User interactions with features</li>
-                  <li>Referral source</li>
-                </ul>
-                <p className="text-xs text-gray-500 mt-2">IP addresses are anonymized. No personally identifiable information is collected.</p>
-              </div>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">4. How We Use Your Data</h3>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong>Essential Data:</strong> To provide core app functionality (favorites, recent commands, preferences)</li>
-                <li><strong>Analytics Data:</strong> To understand usage patterns and improve user experience</li>
-              </ul>
-              <p className="text-sm text-gray-400 mt-2">
-                We do not sell, rent, or share your data with third parties except as described in this policy.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">5. Data Storage and Retention</h3>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong>Local Storage:</strong> Stored indefinitely in your browser until manually cleared</li>
-                <li><strong>Google Analytics:</strong> Retained for 14 months, then automatically deleted</li>
-              </ul>
-              <p className="text-sm text-gray-400 mt-2">
-                No data is stored on our servers. All preference data remains exclusively on your device.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">6. Third-Party Services</h3>
-              <p className="mb-2">
-                We use <strong>Google Analytics</strong> (Google LLC, USA) for usage statistics. Google is certified under the 
-                EU-US Data Privacy Framework.
-              </p>
-              <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-                <li>Service: Google Analytics 4</li>
-                <li>Purpose: Website analytics and improvement</li>
-                <li>Legal Basis: Your explicit consent</li>
-                <li>Data Transfer: To USA (adequacy decision)</li>
-                <li>Privacy Policy: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Privacy Policy</a></li>
-                <li>Opt-out: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Analytics Opt-out</a></li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">7. Your Rights Under GDPR</h3>
-              <p className="mb-2">As an EU resident, you have the following rights:</p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong>Right of Access</strong> (Art. 15 GDPR) - Request information about your data</li>
-                <li><strong>Right to Rectification</strong> (Art. 16 GDPR) - Correct inaccurate data</li>
-                <li><strong>Right to Erasure</strong> (Art. 17 GDPR) - Request deletion of your data</li>
-                <li><strong>Right to Restriction</strong> (Art. 18 GDPR) - Limit data processing</li>
-                <li><strong>Right to Data Portability</strong> (Art. 20 GDPR) - Receive your data in portable format</li>
-                <li><strong>Right to Object</strong> (Art. 21 GDPR) - Object to data processing</li>
-                <li><strong>Right to Withdraw Consent</strong> - Revoke consent at any time</li>
-              </ul>
-              <p className="text-sm text-gray-400 mt-2">
-                To exercise these rights, contact us via GitHub or clear your browser data directly.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">8. Data Security</h3>
-              <p>
-                We implement appropriate technical measures to protect your data. Local data is stored in your browser's 
-                secure storage. Analytics data is transmitted over encrypted connections (HTTPS/TLS).
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">9. Children's Privacy</h3>
-              <p>
-                This service is not directed to persons under 16 years of age. We do not knowingly collect data from children. 
-                If you believe a child has provided us with personal data, please contact us immediately.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">10. Changes to This Policy</h3>
-              <p>
-                We may update this Privacy Policy to reflect changes in practices or legal requirements. 
-                Material changes will be indicated by updating the effective date. Your continued use constitutes acceptance of changes.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">11. Supervisory Authority</h3>
-              <p>
-                You have the right to lodge a complaint with your local data protection authority if you believe 
-                your data protection rights have been violated.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">12. Contact</h3>
-              <p>
-                For questions, concerns, or to exercise your rights regarding this Privacy Policy, contact us through the 
-                <a href="https://github.com/aleattino/cmddeck/issues" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline ml-1">GitHub repository</a>.
-              </p>
-            </section>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Cookie Policy Modal
-const CookiePolicyModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-3xl my-8 shadow-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <Cookie size={24} className="text-green-400" />
-            <h2 className="text-xl font-bold text-green-400">Cookie Policy</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 p-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6 overflow-y-auto">
-          <div className="text-gray-400 space-y-4 text-sm leading-relaxed">
-            <p className="text-gray-300">
-              <strong>Effective Date:</strong> October 15, 2025
-            </p>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">1. What Are Cookies and Similar Technologies</h3>
-              <p>
-                Cookies are small text files stored on your device when you visit a website. We also use localStorage, 
-                a browser technology that stores data locally on your device. Both help remember your preferences and improve your experience.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">2. Categories of Cookies</h3>
-              
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-3">
-                <h4 className="text-green-400 font-semibold mb-2">A. Strictly Necessary (No Consent Required)</h4>
-                <p className="mb-2 text-sm">
-                  Essential for app functionality. Stored in localStorage (not cookies). Legal basis: Legitimate interest (Art. 6(1)(f) GDPR).
-                </p>
-                <table className="w-full text-xs mt-2">
-                  <thead className="border-b border-gray-700">
-                    <tr>
-                      <th className="text-left py-1 text-green-400">Name</th>
-                      <th className="text-left py-1 text-green-400">Purpose</th>
-                      <th className="text-left py-1 text-green-400">Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-400">
-                    <tr className="border-b border-gray-800">
-                      <td className="py-1"><code>cmddeckFavorites</code></td>
-                      <td className="py-1">Store starred commands</td>
-                      <td className="py-1">Persistent</td>
-                    </tr>
-                    <tr className="border-b border-gray-800">
-                      <td className="py-1"><code>cmddeckRecent</code></td>
-                      <td className="py-1">Store recent commands</td>
-                      <td className="py-1">Persistent</td>
-                    </tr>
-                    <tr className="border-b border-gray-800">
-                      <td className="py-1"><code>selectedOS</code></td>
-                      <td className="py-1">Remember OS choice</td>
-                      <td className="py-1">Persistent</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1"><code>cmddeckCookieConsent</code></td>
-                      <td className="py-1">Store consent choice</td>
-                      <td className="py-1">Persistent</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                <h4 className="text-green-400 font-semibold mb-2">B. Analytics Cookies (Consent Required)</h4>
-                <p className="mb-2 text-sm">
-                  Used only with your explicit consent. Legal basis: Consent (Art. 6(1)(a) GDPR).
-                </p>
-                <table className="w-full text-xs mt-2">
-                  <thead className="border-b border-gray-700">
-                    <tr>
-                      <th className="text-left py-1 text-green-400">Name</th>
-                      <th className="text-left py-1 text-green-400">Provider</th>
-                      <th className="text-left py-1 text-green-400">Purpose</th>
-                      <th className="text-left py-1 text-green-400">Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-400">
-                    <tr className="border-b border-gray-800">
-                      <td className="py-1"><code>_ga</code></td>
-                      <td className="py-1">Google</td>
-                      <td className="py-1">Distinguish users</td>
-                      <td className="py-1">2 years</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1"><code>_ga_*</code></td>
-                      <td className="py-1">Google</td>
-                      <td className="py-1">Persist session state</td>
-                      <td className="py-1">2 years</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p className="mt-2 text-xs text-gray-500">
-                  Data is transmitted to Google LLC (USA) under EU-US Data Privacy Framework adequacy decision.
-                </p>
-              </div>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">3. Your Consent</h3>
-              <p className="mb-2">
-                When you first visit CmdDeck, you'll see a cookie banner with two options:
-              </p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong>Accept:</strong> Enables analytics cookies; we can track usage to improve the app</li>
-                <li><strong>Decline:</strong> Disables analytics cookies; only essential localStorage is used</li>
-              </ul>
-              <p className="text-sm text-gray-400 mt-2">
-                You can withdraw consent at any time by clearing your browser data or localStorage.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">4. How to Manage Cookies</h3>
-              <div className="space-y-2">
-                <div>
-                  <p className="font-semibold mb-1">Browser Settings:</p>
-                  <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-                    <li>Chrome: Settings → Privacy and security → Cookies and other site data</li>
-                    <li>Firefox: Settings → Privacy & Security → Cookies and Site Data</li>
-                    <li>Safari: Preferences → Privacy → Manage Website Data</li>
-                    <li>Edge: Settings → Cookies and site permissions</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-semibold mb-1">Google Analytics Opt-out:</p>
-                  <p className="text-sm ml-4">
-                    Install the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Analytics Opt-out Browser Add-on</a>
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-3">
-                Note: Blocking strictly necessary localStorage may prevent the app from functioning properly.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">5. Third-Party Cookies</h3>
-              <p className="mb-2">
-                We use Google Analytics 4 (Google LLC). Google may set cookies according to their policies:
-              </p>
-              <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-                <li><a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Cookie Policy</a></li>
-                <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Privacy Policy</a></li>
-                <li><a href="https://support.google.com/analytics/answer/6004245" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Google Analytics Data Usage</a></li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">6. Updates to This Policy</h3>
-              <p>
-                We may update this Cookie Policy to reflect changes in technology, legal requirements, or our practices. 
-                Updates will be indicated by the effective date at the top of this page.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-green-400 font-semibold text-base mb-2">7. Contact</h3>
-              <p>
-                For questions about our use of cookies, please contact us via the 
-                <a href="https://github.com/aleattino/cmddeck/issues" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline ml-1">GitHub repository</a>.
-              </p>
-            </section>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Info Modal component
-const InfoModal = ({ isOpen, onClose, totalCommands }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-md shadow-2xl">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Info size={24} className="text-green-400" />
-            <h2 className="text-xl font-bold text-green-400">About CmdDeck</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 p-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Version & Stats */}
-          <div className="text-center pb-4 border-b border-gray-800">
-            <h3 className="text-2xl font-bold text-green-400 mb-1">CmdDeck</h3>
-            <p className="text-gray-500 text-sm mb-3">Your deck of ready-to-use Linux commands</p>
-            <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-gray-400">Version <span className="text-green-400 font-mono">1.3.2</span></span>
-              <span className="text-gray-600">•</span>
-              <span className="text-gray-400"><span className="text-green-400 font-bold">100+</span> commands</span>
-            </div>
-          </div>
-
-          {/* Creator */}
-          <div className="flex items-start gap-3">
-            <User size={20} className="text-green-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Created by</p>
-              <p className="text-green-400 font-semibold">Alessandro Attino</p>
-              <p className="text-gray-600 text-xs mt-1">© 2025</p>
-            </div>
-          </div>
-
-          {/* Keyboard Shortcuts */}
-          <div className="flex items-start gap-3">
-            <Keyboard size={20} className="text-green-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm text-gray-400 mb-2">Keyboard Shortcuts</p>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Quick Search</span>
-                  <div className="flex gap-1">
-                    <kbd className="px-2 py-0.5 bg-gray-800 rounded text-gray-400">Ctrl</kbd>
-                    <kbd className="px-2 py-0.5 bg-gray-800 rounded text-gray-400">K</kbd>
-                    <span className="text-gray-600 mx-1">or</span>
-                    <kbd className="px-2 py-0.5 bg-gray-800 rounded text-gray-400">/</kbd>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Close Dialogs</span>
-                  <kbd className="px-2 py-0.5 bg-gray-800 rounded text-gray-400">Esc</kbd>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Links */}
-          <div className="flex items-start gap-3">
-            <ExternalLink size={20} className="text-green-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm text-gray-400 mb-2">Links</p>
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href="https://github.com/aleattino/cmddeck"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-md transition-colors inline-flex items-center gap-1"
-                >
-                  GitHub
-                  <ExternalLink size={12} />
-                </a>
-                <a
-                  href="https://github.com/aleattino/cmddeck/blob/main/CHANGELOG.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-md transition-colors inline-flex items-center gap-1"
-                >
-                  Changelog
-                  <ExternalLink size={12} />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Workflow icons mapping
-const workflowIcons = {
-  Save,
-  Trash2,
-  Globe,
-  Lock,
-  Container,
-  Activity,
-  AlertCircle
-};
-
-// Workflows Modal component
-const WorkflowsModal = ({ isOpen, onClose, workflows, selectedWorkflow, onSelectWorkflow, onCopyStep, copiedCommand }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-4xl my-2 sm:my-8 shadow-2xl">
-        {/* Header */}
-        <div className="p-3 sm:p-6 border-b border-gray-800 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <FileStack size={20} className="text-green-400 sm:w-7 sm:h-7" />
-            <div>
-              <h2 className="text-lg sm:text-2xl font-bold text-green-400 mb-0 sm:mb-1">Command Workflows</h2>
-              <p className="text-gray-500 text-xs sm:text-sm hidden sm:block">Complete task sequences for common operations</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 p-1 sm:p-2"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="flex flex-col md:flex-row">
-          {/* Workflows List */}
-          <div className="md:w-1/3 border-b md:border-b-0 md:border-r border-gray-800 max-h-[30vh] md:max-h-[70vh] overflow-y-auto">
-            {workflows.map(workflow => {
-              const IconComponent = workflowIcons[workflow.icon];
-              return (
-              <button
-                key={workflow.id}
-                onClick={() => onSelectWorkflow(workflow)}
-                className={`w-full text-left p-3 sm:p-4 border-b border-gray-800 transition-colors ${
-                  selectedWorkflow?.id === workflow.id ? 'bg-green-500/20 border-l-4 border-l-green-500' : 'hover:bg-gray-800/50'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {IconComponent && <IconComponent size={16} className="text-green-400 sm:w-5 sm:h-5" />}
-                  <span className="text-green-400 font-semibold text-xs sm:text-sm">{workflow.title}</span>
-                </div>
-                <p className="text-gray-500 text-xs line-clamp-2 sm:line-clamp-none">{workflow.description}</p>
-                <div className="mt-2 flex gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded ${
-                    workflow.difficulty === 'beginner' ? 'bg-green-500/20 text-green-400' :
-                    workflow.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                    {workflow.difficulty}
-                  </span>
-                  <span className="text-xs text-gray-600">{workflow.steps.length} steps</span>
-                </div>
-              </button>
-              );
-            })}
-          </div>
-
-          {/* Workflow Steps */}
-          <div className="md:w-2/3 p-3 sm:p-6 max-h-[50vh] md:max-h-[70vh] overflow-y-auto">
-            {selectedWorkflow ? (
-              <div>
-                <div className="mb-4 sm:mb-6">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    {React.createElement(workflowIcons[selectedWorkflow.icon], { 
-                      size: 24, 
-                      className: "text-green-400 sm:w-8 sm:h-8" 
-                    })}
-                    <h3 className="text-lg sm:text-xl font-bold text-green-400">{selectedWorkflow.title}</h3>
-                  </div>
-                  <p className="text-gray-400 text-sm">{selectedWorkflow.description}</p>
-                </div>
-
-                <div className="space-y-3 sm:space-y-4">
-                  {selectedWorkflow.steps.map((step, index) => (
-                    <div key={index} className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700">
-                      <div className="flex items-start gap-2 sm:gap-3 mb-2">
-                        <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center text-xs font-bold">
-                          {index + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-green-400 font-semibold mb-1 text-sm sm:text-base">{step.title}</h4>
-                          <p className="text-gray-400 text-xs sm:text-sm mb-2 sm:mb-3">{step.description}</p>
-                          <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs text-gray-200 relative">
-                            <code className="block pr-14 sm:pr-16 break-all">{step.command}</code>
-                            <button
-                              onClick={() => onCopyStep(step.command)}
-                              className={`absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 py-1 text-xs rounded-md transition-colors ${
-                                copiedCommand === step.command
-                                  ? 'bg-green-500 text-black'
-                                  : 'bg-gray-700 hover:bg-green-500 hover:text-black'
-                              }`}
-                            >
-                              {copiedCommand === step.command ? '✓' : 'Copy'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Copy All Button */}
-                <button
-                  onClick={() => onCopyStep(selectedWorkflow.steps.map(s => s.command).join('\n'))}
-                  className={`mt-4 sm:mt-6 w-full py-2.5 sm:py-3 font-semibold text-sm sm:text-base rounded-md transition-colors flex items-center justify-center gap-2 ${
-                    copiedCommand === selectedWorkflow.steps.map(s => s.command).join('\n')
-                      ? 'bg-green-600 text-white'
-                      : 'bg-green-500 hover:bg-green-600 text-black'
-                  }`}
-                >
-                  {copiedCommand === selectedWorkflow.steps.map(s => s.command).join('\n') ? (
-                    <>✓ Copied to Clipboard!</>
-                  ) : (
-                    <>
-                      <FileStack size={14} className="sm:w-4 sm:h-4" />
-                      Copy All {selectedWorkflow.steps.length} Commands
-                    </>
-                  )}
-                </button>
-                <p className="text-xs text-gray-500 text-center mt-2 hidden sm:block">
-                  Copies all commands as a multi-line script ready to paste in terminal
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full min-h-[200px] text-gray-500">
-                <div className="text-center">
-                  <FileStack size={36} className="mx-auto mb-3 opacity-30 sm:w-12 sm:h-12" />
-                  <p className="text-sm sm:text-base">Select a workflow to view steps</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Command Palette component
-const CommandPalette = ({ isOpen, onClose, snippets, onSelect, searchValue, onSearchChange }) => {
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
-  const inputRef = React.useRef(null);
-
-  React.useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  React.useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchValue]);
-
-  const handleSelect = (snippet) => {
-    onSelect(snippet);
-    onClose();
+function readUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const settings = params.get('settings');
+  return {
+    category: categoryBySlug.get(params.get('category') ?? '') ?? 'All',
+    query: params.get('q') ?? '',
+    settings: SETTINGS_SECTION_IDS.includes(settings) ? settings : null,
   };
+}
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev => Math.min(prev + 1, snippets.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => Math.max(prev - 1, 0));
-    } else if (e.key === 'Enter' && snippets[selectedIndex]) {
-      e.preventDefault();
-      handleSelect(snippets[selectedIndex]);
-    }
-  };
+function writeUrl({ category, query, settings }, mode) {
+  const params = new URLSearchParams();
+  if (category !== 'All') params.set('category', slugify(category));
+  if (query.trim()) params.set('q', query.trim());
+  if (settings) params.set('settings', settings);
+  const search = params.toString();
+  const url = `${window.location.pathname}${search ? `?${search}` : ''}`;
+  if (url === `${window.location.pathname}${window.location.search}`) return;
+  window.history[mode === 'push' ? 'pushState' : 'replaceState'](null, '', url);
+}
 
-  if (!isOpen) return null;
+const isTypingTarget = (element) =>
+  element instanceof HTMLElement &&
+  (element.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName));
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 sm:p-8 pt-[10vh]">
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-3xl shadow-2xl overflow-hidden">
-        {/* Search Input */}
-        <div className="p-4 border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <Search className="text-gray-500" size={20} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search all commands... (use ↑↓ to navigate, Enter to copy)"
-              className="flex-1 bg-transparent text-gray-200 text-lg outline-none placeholder-gray-600"
-            />
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-300 text-sm px-2 py-1 rounded bg-gray-800"
-            >
-              ESC
-            </button>
-          </div>
-        </div>
+const transitionNameFor = (id) => `card-${id.replace(/[^a-z0-9-]/gi, '-')}`;
 
-        {/* Results */}
-        <div className="max-h-[60vh] overflow-y-auto">
-          {snippets.length > 0 ? (
-            snippets.slice(0, 10).map((snippet, index) => {
-              const snippetKey = snippet.command || snippet.variants?.ubuntu || `snippet-${index}`;
-              return (
-              <button
-                key={snippetKey}
-                onClick={() => handleSelect(snippet)}
-                onMouseEnter={() => setSelectedIndex(index)}
-                className={`w-full text-left p-4 border-b border-gray-800 transition-all ${
-                  index === selectedIndex ? 'bg-green-500/20 border-l-4 border-l-green-500' : 'hover:bg-gray-800/50'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-green-400 font-semibold">
-                    {snippet.title}
-                  </span>
-                  <div className="flex items-center gap-2 ml-2">
-                    {snippet.dangerLevel === 'danger' && (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/20 px-2 py-0.5 rounded border border-red-500/50">
-                        <AlertOctagon size={10} />
-                        DANGER
-                      </span>
-                    )}
-                    {snippet.dangerLevel === 'caution' && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-400 bg-yellow-500/20 px-2 py-0.5 rounded border border-yellow-500/50">
-                        <AlertTriangle size={10} />
-                        CAUTION
-                      </span>
-                    )}
-                    <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-                      {snippet.category}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-gray-400 text-sm mb-2">{snippet.description}</p>
-                <div className="flex items-center justify-between gap-2">
-                  <code className="text-xs text-gray-500 font-mono block truncate flex-1">{snippet.command}</code>
-                  <span className="text-xs text-gray-600 whitespace-nowrap">Click to copy</span>
-                </div>
-              </button>
-              );
-            })
-          ) : (
-            <div className="p-8 text-center text-gray-500">
-              <Search className="mx-auto mb-2 opacity-50" size={32} />
-              <p>No commands found</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Hint */}
-        <div className="p-3 bg-gray-950/50 border-t border-gray-800 text-xs text-gray-600 flex items-center justify-between">
-          <div className="flex gap-4">
-            <span><kbd className="px-2 py-1 bg-gray-800 rounded">↑↓</kbd> Navigate</span>
-            <span><kbd className="px-2 py-1 bg-gray-800 rounded">Enter</kbd> Copy</span>
-            <span><kbd className="px-2 py-1 bg-gray-800 rounded">Esc</kbd> Close</span>
-          </div>
-          <span>{snippets.length} results</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Package Management Card with distro variants
-const PackageManagementCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory, detectedOS }) => {
-  const [selectedDistro, setSelectedDistro] = React.useState(detectedOS);
-  const [inputValues, setInputValues] = useState({});
-  const [showCustomization, setShowCustomization] = useState(false);
-  
-  React.useEffect(() => {
-    setSelectedDistro(detectedOS);
-  }, [detectedOS]);
-  
-  // Generate command based on inputs and distro
-  const displayCommand = useMemo(() => {
-    if (snippet.interactive && snippet.commandTemplate) {
-      try {
-        return snippet.commandTemplate(inputValues, selectedDistro);
-      } catch (e) {
-        console.error('Error generating command:', e);
-        return snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
-      }
-    }
-    return snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
-  }, [snippet, inputValues, selectedDistro]);
-  
-  const command = snippet.variants?.[selectedDistro] || snippet.variants?.ubuntu || snippet.command;
-  const commandForFavorite = snippet.variants?.ubuntu || snippet.command; // Use ubuntu as base for favorites
-  
-  const handleInputChange = (param, value) => {
-    setInputValues(prev => ({
-      ...prev,
-      [param]: value
-    }));
-  };
-  
-  const getDangerBadge = (dangerLevel) => {
-    if (!dangerLevel) return null;
-    
-    if (dangerLevel === 'danger') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded border border-red-500/50">
-          <AlertOctagon size={12} />
-          DANGER
-        </span>
-      );
-    }
-    
-    if (dangerLevel === 'caution') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-400 bg-yellow-500/20 px-2 py-1 rounded border border-yellow-500/50">
-          <AlertTriangle size={12} />
-          CAUTION
-        </span>
-      );
-    }
-    
-    return null;
-  };
-
-  return (
-    <div className="bg-gray-900/50 border border-green-500/20 rounded-lg p-3 sm:p-4 flex flex-col justify-between transition-all hover:border-green-500/50 hover:bg-gray-900">
-      <div>
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="text-green-400 font-bold text-base sm:text-lg flex-1 pr-2">{snippet.title}</h3>
-          <button
-            onClick={() => onToggleFavorite(commandForFavorite)}
-            className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {showCategory && snippet.category && (
-            <span className="inline-block text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-              {snippet.category}
-            </span>
-          )}
-          {getDangerBadge(snippet.dangerLevel)}
-          {snippet.variants && (
-            <span className="inline-flex items-center gap-1 text-xs text-blue-400 bg-blue-500/20 px-2 py-1 rounded border border-blue-500/50">
-              <Monitor size={10} />
-              Multi-distro
-            </span>
-          )}
-        </div>
-        <p className="text-gray-400 text-xs sm:text-sm mb-3 leading-relaxed">{snippet.description}</p>
-        
-        {/* Distro Tabs */}
-        {snippet.variants && (
-          <div className="flex gap-1 mb-3 flex-wrap">
-            <button
-              onClick={() => setSelectedDistro('ubuntu')}
-              className={`px-3 py-1 text-xs rounded transition-colors ${
-                selectedDistro === 'ubuntu'
-                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
-                  : 'bg-gray-800 text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Ubuntu/Debian
-            </button>
-            <button
-              onClick={() => setSelectedDistro('fedora')}
-              className={`px-3 py-1 text-xs rounded transition-colors ${
-                selectedDistro === 'fedora'
-                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                  : 'bg-gray-800 text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Fedora/RHEL
-            </button>
-            <button
-              onClick={() => setSelectedDistro('arch')}
-              className={`px-3 py-1 text-xs rounded transition-colors ${
-                selectedDistro === 'arch'
-                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                  : 'bg-gray-800 text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Arch
-            </button>
-          </div>
-        )}
-      </div>
-      
-      <div className="space-y-2">
-        <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
-          <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{command}</code>
-          <button 
-            onClick={() => onCopy(command)}
-            className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {isCopied ? '✓' : 'Copy'}
-          </button>
-        </div>
-        
-        {/* Customize Button for Interactive Commands */}
-        {snippet.interactive && (
-          <button
-            onClick={() => setShowCustomization(true)}
-            className="w-full py-2 px-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors border border-purple-500/50 flex items-center justify-center gap-2"
-          >
-            <Sliders size={14} />
-            Customize Command
-          </button>
-        )}
-      </div>
-      
-      {/* Customization Modal */}
-      <CommandCustomizationModal
-        isOpen={showCustomization}
-        onClose={() => setShowCustomization(false)}
-        snippet={snippet}
-        inputValues={inputValues}
-        onInputChange={handleInputChange}
-        displayCommand={displayCommand}
-        onCopy={onCopy}
-        isCopied={isCopied}
-      />
-    </div>
-  );
-};
-
-// Command Explanation Modal
-const CommandExplanationModal = ({ isOpen, onClose, explanation }) => {
-  if (!isOpen || !explanation) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-gray-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <HelpCircle size={24} className="text-green-400" />
-            <h2 className="text-lg sm:text-xl font-bold text-green-400">Command Breakdown</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 p-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 sm:p-6 space-y-3">
-          {explanation.parts.map((part, index) => (
-            <div key={index} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 sm:p-4">
-              <div className="flex items-start gap-3">
-                <code className="text-green-400 font-mono text-sm font-bold bg-black/50 px-2 py-1 rounded flex-shrink-0">
-                  {part.text}
-                </code>
-                <div className="flex-1">
-                  <p className="text-gray-300 text-sm">{part.description}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-gray-800 bg-gray-950/50">
-          <p className="text-xs text-gray-500 text-center">
-            Understanding commands helps you use them safely and effectively
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Command Customization Modal
-const CommandCustomizationModal = ({ isOpen, onClose, snippet, inputValues, onInputChange, displayCommand, onCopy, isCopied }) => {
-  if (!isOpen || !snippet.interactive) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-gray-900 border border-green-500/30 rounded-lg w-full max-w-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-gray-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Sliders size={24} className="text-purple-400" />
-            <h2 className="text-lg sm:text-xl font-bold text-green-400">Customize Command</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 p-1"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 sm:p-6 space-y-4">
-          <div>
-            <h3 className="text-green-400 font-semibold mb-2">{snippet.title}</h3>
-            <p className="text-gray-400 text-sm mb-4">{snippet.description}</p>
-          </div>
-
-          {/* Input Fields */}
-          <div className="space-y-3">
-            {snippet.inputs?.map((input, index) => (
-              <div key={index}>
-                <label className="text-sm text-gray-300 mb-1.5 block font-medium">{input.label}:</label>
-                <input
-                  type="text"
-                  placeholder={input.placeholder}
-                  value={inputValues[input.param] || ''}
-                  onChange={(e) => onInputChange(input.param, e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Generated Command Preview */}
-          <div className="mt-6">
-            <label className="text-sm text-gray-400 mb-2 block">Generated command:</label>
-            <div className="bg-black/50 p-3 rounded-md font-mono text-sm text-gray-200 border border-gray-700">
-              <code className="block break-all">{displayCommand}</code>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-gray-800 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-md text-sm font-medium transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              onCopy(displayCommand);
-              setTimeout(() => onClose(), 500);
-            }}
-            className={`flex-1 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors ${
-              isCopied 
-                ? 'bg-green-600 text-white' 
-                : 'bg-purple-500 hover:bg-purple-600 text-black'
-            }`}
-          >
-            {isCopied ? '✓ Copied!' : 'Copy Command'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Snippet card component
-const SnippetCard = ({ snippet, onCopy, isCopied, onToggleFavorite, isFavorite, showCategory }) => {
-  const [inputValues, setInputValues] = useState({});
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [showCustomization, setShowCustomization] = useState(false);
-  
-  // Generate command based on inputs
-  const displayCommand = useMemo(() => {
-    if (snippet.interactive && snippet.commandTemplate) {
-      try {
-        return snippet.commandTemplate(inputValues);
-      } catch (e) {
-        console.error('Error generating command:', e);
-        return snippet.command;
-      }
-    }
-    return snippet.command;
-  }, [snippet, inputValues]);
-
-  const getDangerBadge = (dangerLevel) => {
-    if (!dangerLevel) return null;
-    
-    if (dangerLevel === 'danger') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded border border-red-500/50">
-          <AlertOctagon size={12} />
-          DANGER
-        </span>
-      );
-    }
-    
-    if (dangerLevel === 'caution') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-400 bg-yellow-500/20 px-2 py-1 rounded border border-yellow-500/50">
-          <AlertTriangle size={12} />
-          CAUTION
-        </span>
-      );
-    }
-    
-    return null;
-  };
-
-  const handleInputChange = (param, value) => {
-    setInputValues(prev => ({
-      ...prev,
-      [param]: value
-    }));
-  };
-
-  return (
-    <div className="bg-gray-900/50 border border-green-500/20 rounded-lg p-3 sm:p-4 flex flex-col justify-between transition-all hover:border-green-500/50 hover:bg-gray-900">
-      <div>
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="text-green-400 font-bold text-base sm:text-lg flex-1 pr-2">{snippet.title}</h3>
-          <div className="flex items-center gap-1">
-            {snippet.explanation && (
-              <button
-                onClick={() => setShowExplanation(true)}
-                className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
-                title="Explain this command"
-              >
-                <HelpCircle size={16} className="text-blue-400" />
-              </button>
-            )}
-            <button
-              onClick={() => onToggleFavorite(snippet.command)}
-              className="flex-shrink-0 p-1 hover:bg-gray-800 rounded transition-colors"
-              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            >
-              <Star size={16} className={isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-500"} />
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {showCategory && snippet.category && (
-            <span className="inline-block text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-              {snippet.category}
-            </span>
-          )}
-          {getDangerBadge(snippet.dangerLevel)}
-        </div>
-        <p className="text-gray-400 text-xs sm:text-sm mb-3 leading-relaxed">{snippet.description}</p>
-      </div>
-      
-      <div className="space-y-2">
-        <div className="bg-black/50 p-2 sm:p-3 rounded-md font-mono text-xs sm:text-sm text-gray-200 relative">
-          <code className="block pr-14 sm:pr-16 break-all overflow-x-auto">{snippet.command}</code>
-          <button 
-            onClick={() => onCopy(snippet.command)}
-            className="absolute top-1/2 -translate-y-1/2 right-1.5 sm:right-2 px-2 sm:px-3 py-1 text-xs bg-gray-700 hover:bg-green-500 hover:text-black rounded-md transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {isCopied ? '✓' : 'Copy'}
-          </button>
-        </div>
-        
-        {/* Customize Button for Interactive Commands */}
-        {snippet.interactive && (
-          <button
-            onClick={() => setShowCustomization(true)}
-            className="w-full py-2 px-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-medium rounded-md transition-colors border border-purple-500/50 flex items-center justify-center gap-2"
-          >
-            <Sliders size={14} />
-            Customize Command
-          </button>
-        )}
-      </div>
-      
-      {/* Explanation Modal */}
-      <CommandExplanationModal 
-        isOpen={showExplanation}
-        onClose={() => setShowExplanation(false)}
-        explanation={snippet.explanation}
-      />
-      
-      {/* Customization Modal */}
-      <CommandCustomizationModal
-        isOpen={showCustomization}
-        onClose={() => setShowCustomization(false)}
-        snippet={snippet}
-        inputValues={inputValues}
-        onInputChange={handleInputChange}
-        displayCommand={displayCommand}
-        onCopy={onCopy}
-        isCopied={isCopied}
-      />
-    </div>
-  );
-};
-
-// Category icons mapping - Minimal Lucide icons + custom logos
-const categoryIcons = {
-  "All": CommandIcon,
-  "Favorites": Star,
-  "Recent": Clock,
-  "Package Management": Box,
-  "System Info": Monitor,
-  "Files & Folders": Folder,
-  "Search & Find": Search,
-  "View & Edit Files": FileText,
-  "Processes & Performance": Cpu,
-  "Network": Wifi,
-  "Archives & Compression": Archive,
-  "Users & Permissions": Users,
-  "System Services": Settings,
-  "System Logs": FileStack,
-  "Flatpak": FlatpakLogo,         // Custom Flatpak logo
-  "Ubuntu Specific": UbuntuLogo,  // Custom Ubuntu logo
-  "Fedora Specific": FedoraLogo,  // Custom Fedora logo
-  "Arch Specific": ArchLogo       // Custom Arch logo
-};
-
-// Detect user's operating system
-const detectOS = () => {
-  const userAgent = window.navigator.userAgent;
-  const platform = window.navigator.platform;
-  const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K', 'darwin'];
-  const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'];
-  
-  // Check for macOS first (most reliable check)
-  if (macosPlatforms.some(p => platform.includes(p))) {
-    return 'not-linux';
+function mergeProgress(current, incoming) {
+  const result = { ...current };
+  for (const [id, steps] of Object.entries(incoming ?? {})) {
+    if (!Array.isArray(steps)) continue;
+    const valid = steps.filter((step) => Number.isInteger(step) && step >= 0);
+    result[id] = [...new Set([...(result[id] ?? []), ...valid])].sort((a, b) => a - b);
   }
-  
-  // Check for Windows
-  if (windowsPlatforms.some(p => platform.includes(p))) {
-    return 'not-linux';
-  }
-  
-  // Check userAgent for additional macOS detection
-  if (userAgent.includes('Mac OS') || userAgent.includes('Macintosh')) {
-    return 'not-linux';
-  }
-  
-  // Check userAgent for Windows
-  if (userAgent.includes('Windows')) {
-    return 'not-linux';
-  }
-  
-  // Now check for Linux - must be after macOS/Windows checks
-  if (platform.includes('Linux') || userAgent.includes('Linux')) {
-    // Detect specific Linux distro
-    const ua = userAgent.toLowerCase();
-    if (ua.includes('ubuntu')) return 'ubuntu';
-    if (ua.includes('fedora') || ua.includes('red hat')) return 'fedora';
-    if (ua.includes('arch')) return 'arch';
-    if (ua.includes('debian')) return 'ubuntu'; // Debian uses apt like Ubuntu
-    return 'generic'; // Generic Linux
-  }
-  
-  // Fallback: if we can't detect, assume not on Linux
-  return 'not-linux';
-};
+  return result;
+}
 
 export default function App() {
-  // State for dynamic data loading
-  const [snippetsDataState, setSnippetsDataState] = useState(snippetsData);
-  const [isLoadingData, setIsLoadingData] = useState(false);
-  const [dataSource, setDataSource] = useState('local'); // 'local' or 'gist'
-  
-  const dataCategories = Object.keys(snippetsDataState);
-  const specialCategories = ['All', 'Favorites', 'Recent'];
-  const categories = [...specialCategories, ...dataCategories];
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [globalSearch, setGlobalSearch] = useState('');
-  const [paletteSearch, setPaletteSearch] = useState('');
-  const [copiedCommand, setCopiedCommand] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const initial = useMemo(readUrl, []);
+  const [category, setCategory] = useState(initial.category);
+  const [query, setQuery] = useState(initial.query);
+  const [settingsSection, setSettingsSection] = useState(initial.settings);
+  const [favorites, setFavorites] = useState(() => loadIds(FAVORITES_KEY, 'favorites'));
+  const [recent, setRecent] = useState(() => loadIds(RECENT_KEY, 'recentCommands'));
+  const [progress, setProgress] = useState(loadProgress);
+  const [prefs, setPrefs] = useState(loadPreferences);
+
+  const detected = useMemo(detectOS, []);
+  const [osChoice, setOsChoice] = useState(() => {
+    const saved = readString(OS_KEY);
+    return DISTROS.includes(saved) ? saved : null;
+  });
+  const selectedOS = osChoice ?? (DISTROS.includes(detected) ? detected : null);
+  const commandOS = selectedOS ?? 'ubuntu';
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [workflowsOpen, setWorkflowsOpen] = useState(false);
-  const [selectedWorkflow, setSelectedWorkflow] = useState(null);
-  const [displayLimit, setDisplayLimit] = useState(20);
-  const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem('favorites');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [recentCommands, setRecentCommands] = useState(() => {
-    const saved = localStorage.getItem('recentCommands');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [infoModalOpen, setInfoModalOpen] = useState(false);
-  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
-  const [cookiePolicyModalOpen, setCookiePolicyModalOpen] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [cookieConsentVisible, setCookieConsentVisible] = useState(() => {
-    const consent = localStorage.getItem('cmddeckCookieConsent');
-    return !consent; // Show banner if no consent stored
-  });
-  const [detectedOS, setDetectedOS] = useState(() => {
-    const detected = detectOS();
-    const saved = localStorage.getItem('selectedOS');
-    
-    if (saved) {
-      return saved;
-    }
-    
-    // If not on Linux, keep 'not-linux' to show the warning
-    return detected;
-  });
-  const [showOSSelector, setShowOSSelector] = useState(false);
-  const [footerMenuOpen, setFooterMenuOpen] = useState(false);
+  const [legalDoc, setLegalDoc] = useState(null);
+  const [consent, setConsent] = useState(getConsent);
+  const [confirm, setConfirm] = useState({ open: false });
 
-  // Handle OS selection change
-  const handleOSChange = (os) => {
-    setDetectedOS(os);
-    if (os !== 'not-linux') {
-      localStorage.setItem('selectedOS', os);
-    }
-    setShowOSSelector(false);
-  };
-  
-  // Get the OS to use for commands (fallback to ubuntu if not-linux)
-  const getCommandOS = () => {
-    return detectedOS === 'not-linux' ? 'ubuntu' : detectedOS;
-  };
+  const [toast, setToast] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(null);
+  const toastTimer = useRef();
+  const copiedTimer = useRef();
 
-  // Load data from GitHub Gist on mount
+  const hasKeyboard = useMediaQuery('(hover: hover) and (pointer: fine)');
+  const systemReduced = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const searchRef = useRef(null);
+  const settingsButtonRef = useRef(null);
+
+  const motionReduced = prefs.motion === 'off' || (prefs.motion === 'system' && systemReduced);
+
+  // Before paint, so the first frame already uses the right motion and text size.
+  useLayoutEffect(() => {
+    document.documentElement.dataset.motion = motionReduced ? 'reduced' : 'full';
+    document.documentElement.dataset.text = prefs.textSize;
+  }, [motionReduced, prefs.textSize]);
+
+  useEffect(() => writeJSON(FAVORITES_KEY, favorites), [favorites]);
+  useEffect(() => writeJSON(RECENT_KEY, recent), [recent]);
+  useEffect(() => writeJSON(PROGRESS_KEY, progress), [progress]);
+  useEffect(() => writeJSON(PREFERENCES_KEY, prefs), [prefs]);
+
   useEffect(() => {
-    const loadDataFromGist = async () => {
-      // GitHub Gist URL - we'll create this after
-      const GIST_URL = 'https://gist.githubusercontent.com/aleattino/YOUR_GIST_ID/raw/snippets.json';
-      
-      try {
-        setIsLoadingData(true);
-        const response = await fetch(GIST_URL);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setSnippetsDataState(data);
-          setDataSource('gist');
-          console.log('✅ Loaded commands from GitHub Gist');
-        } else {
-          console.log('ℹ️ Using local data (Gist not available)');
-        }
-      } catch (error) {
-        console.log('ℹ️ Using local data (Gist fetch failed):', error.message);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
+    document.title = category === 'All' ? 'CmdDeck: Linux command reference' : `${category} · CmdDeck`;
+  }, [category]);
 
-    // Try to load from Gist, but don't block the app if it fails
-    loadDataFromGist();
-  }, []);
-
-  // Get all snippets with category info
-  const allSnippets = useMemo(() => {
-    return Object.entries(snippetsDataState).flatMap(([category, commands]) =>
-      commands.map(cmd => ({ ...cmd, category }))
-    );
-  }, [snippetsDataState]);
-
-  // Get count for a category
-  const getCategoryCount = (category) => {
-    if (category === 'All') return allSnippets.length;
-    if (category === 'Favorites') return favorites.length;
-    if (category === 'Recent') return recentCommands.length;
-    return snippetsData[category]?.length || 0;
-  };
-
-  // Reset display limit when category or search changes
-  React.useEffect(() => {
-    setDisplayLimit(20);
-  }, [selectedCategory, searchTerm, globalSearch]);
-
-  // Filter snippets based on category and search
-  const filteredSnippets = useMemo(() => {
-    const searchQuery = globalSearch || searchTerm;
-    let snippets;
-    
-    // Handle special categories
-    if (selectedCategory === 'All') {
-      snippets = allSnippets;
-    } else if (selectedCategory === 'Favorites') {
-      snippets = allSnippets.filter(s => {
-        const cmd = s.command || s.variants?.ubuntu;
-        return cmd && favorites.includes(cmd);
-      });
-    } else if (selectedCategory === 'Recent') {
-      snippets = allSnippets.filter(s => {
-        const cmd = s.command || s.variants?.ubuntu;
-        return cmd && recentCommands.includes(cmd);
-      }).sort((a, b) => {
-        const cmdA = a.command || a.variants?.ubuntu;
-        const cmdB = b.command || b.variants?.ubuntu;
-        return recentCommands.indexOf(cmdA) - recentCommands.indexOf(cmdB);
-      });
-    } else {
-      snippets = allSnippets.filter(s => s.category === selectedCategory);
-    }
-    
-    // Apply search filter
-    if (searchQuery) {
-      snippets = snippets.filter(s => {
-        const searchableCommand = s.command || s.variants?.ubuntu || '';
-        return (
-          s.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          searchableCommand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      });
-    }
-    
-    return snippets;
-  }, [selectedCategory, searchTerm, globalSearch, allSnippets, favorites, recentCommands]);
-
-  // Get displayed snippets with limit
-  const displayedSnippets = filteredSnippets.slice(0, displayLimit);
-  const hasMore = filteredSnippets.length > displayLimit;
-
-  // Add to recent commands
-  const addToRecent = (command) => {
-    const newRecent = [command, ...recentCommands.filter(c => c !== command)].slice(0, 10);
-    setRecentCommands(newRecent);
-    localStorage.setItem('recentCommands', JSON.stringify(newRecent));
-  };
-
-  // Toggle favorite
-  const toggleFavorite = (command) => {
-    const newFavorites = favorites.includes(command)
-      ? favorites.filter(c => c !== command)
-      : [...favorites, command];
-    setFavorites(newFavorites);
-    localStorage.setItem('favorites', JSON.stringify(newFavorites));
-  };
-
-  // Cookie consent handlers
-  const handleCookieAccept = () => {
-    localStorage.setItem('cmddeckCookieConsent', 'accepted');
-    setCookieConsentVisible(false);
-    
-    // Enable Google Analytics
-    if (window.gtag) {
-      window.gtag('config', 'G-Y6ELJY9QCF', {
-        'anonymize_ip': false,
-        'storage': 'enabled'
-      });
-    }
-  };
-
-  const handleCookieDecline = () => {
-    localStorage.setItem('cmddeckCookieConsent', 'declined');
-    setCookieConsentVisible(false);
-    
-    // Keep GA disabled (already set in index.html)
-  };
-
-  // Function to copy text
-  const handleCopy = (commandToCopy) => {
-    // Use a textarea trick for maximum compatibility
-    const textArea = document.createElement('textarea');
-    textArea.value = commandToCopy;
-    textArea.style.position = 'fixed';
-    textArea.style.top = '-9999px';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      setCopiedCommand(commandToCopy);
-      addToRecent(commandToCopy);
-      
-      // Show toast notification
-      setToastMessage('Command copied!');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2500);
-      
-      setTimeout(() => setCopiedCommand(null), 2000); // Reset after 2 seconds
-    } catch (err) {
-      console.error('Error during copy', err);
-    }
-    document.body.removeChild(textArea);
-  };
-
-  // Palette filtered snippets
-  const paletteSnippets = useMemo(() => {
-    if (!paletteSearch) return allSnippets.slice(0, 50);
-    return allSnippets.filter(s => {
-      const searchableCommand = s.command || s.variants?.ubuntu || '';
-      return (
-        s.title?.toLowerCase().includes(paletteSearch.toLowerCase()) ||
-        searchableCommand.toLowerCase().includes(paletteSearch.toLowerCase()) ||
-        s.description?.toLowerCase().includes(paletteSearch.toLowerCase())
+  useEffect(() => {
+    const onPopState = () => {
+      const next = readUrl();
+      withViewTransition(() =>
+        flushSync(() => {
+          setCategory(next.category);
+          setQuery(next.query);
+        })
       );
-    });
-  }, [paletteSearch, allSnippets]);
-
-  // Handle palette selection
-  const handlePaletteSelect = (snippet) => {
-    const osForCommand = getCommandOS();
-    const commandToCopy = snippet.command || snippet.variants?.[osForCommand] || snippet.variants?.ubuntu;
-    if (commandToCopy) {
-      handleCopy(commandToCopy);
-    }
-    // Don't close immediately - let CommandPalette handle the feedback and timing
-  };
-
-  // Keyboard shortcuts
-  React.useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl+K or Cmd+K to open command palette
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setCommandPaletteOpen(prev => !prev);
-        return;
-      }
-      
-      // / for command palette (only when not in input)
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
-        e.preventDefault();
-        setCommandPaletteOpen(true);
-        return;
-      }
-      
-      // Escape to close everything
-      if (e.key === 'Escape') {
-        setCommandPaletteOpen(false);
-        setShowOSSelector(false);
-        setWorkflowsOpen(false);
-        setInfoModalOpen(false);
-        setPrivacyModalOpen(false);
-        setCookiePolicyModalOpen(false);
-        setFooterMenuOpen(false);
-      }
+      setSettingsSection(next.settings);
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Close OS selector when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (showOSSelector && !e.target.closest('.os-selector-container')) {
-        setShowOSSelector(false);
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+        return;
       }
-      if (footerMenuOpen && !e.target.closest('.footer-menu-container')) {
-        setFooterMenuOpen(false);
+      if (
+        event.key === '/' &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !isTypingTarget(event.target) &&
+        !document.querySelector('dialog[open]')
+      ) {
+        event.preventDefault();
+        setPaletteOpen(true);
       }
     };
-    
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showOSSelector, footerMenuOpen]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearTimeout(toastTimer.current);
+      clearTimeout(copiedTimer.current);
+    },
+    []
+  );
+
+  // List changes run as view transitions: cards glide to their new places.
+  const selectCategory = (next) => {
+    if (next === category) return;
+    withViewTransition(() =>
+      flushSync(() => {
+        setCategory(next);
+        if (window.scrollY > 0) window.scrollTo({ top: 0 });
+      })
+    );
+    writeUrl({ category: next, query, settings: settingsSection }, 'push');
+  };
+
+  const changeQuery = (next, { animate = false } = {}) => {
+    const apply = () => setQuery(next);
+    if (animate) withViewTransition(() => flushSync(apply));
+    else apply();
+    writeUrl({ category, query: next, settings: settingsSection }, 'replace');
+  };
+
+  const openSettings = (section) => {
+    setSettingsSection(section);
+    writeUrl({ category, query, settings: section }, 'replace');
+  };
+
+  const showToast = useCallback((message, tone = 'success') => {
+    clearTimeout(toastTimer.current);
+    setToast({ id: Date.now(), message, tone });
+    toastTimer.current = setTimeout(() => setToast(null), tone === 'error' ? 4000 : 2200);
+  }, []);
+
+  const askToConfirm = (snippet, text) =>
+    new Promise((resolve) => setConfirm({ open: true, snippet, text, resolve }));
+
+  const closeConfirm = (answer) => {
+    confirm.resolve?.(answer);
+    setConfirm((current) => ({ ...current, open: false, resolve: null }));
+  };
+
+  // Returns whether the text reached the clipboard, so callers can react.
+  const handleCopy = useCallback(
+    async (snippet, text, key = snippet?.id) => {
+      if (prefs.confirmDanger && snippet?.dangerLevel === 'danger' && !(await askToConfirm(snippet, text))) {
+        return false;
+      }
+      const ok = await copyText(text);
+      if (!ok) {
+        showToast('Couldn’t copy. Select the command and copy it manually.', 'error');
+        return false;
+      }
+      clearTimeout(copiedTimer.current);
+      setCopiedKey(key);
+      copiedTimer.current = setTimeout(() => setCopiedKey(null), 1800);
+      showToast('Copied to clipboard');
+      if (snippet) setRecent((current) => [snippet.id, ...current.filter((id) => id !== snippet.id)].slice(0, RECENT_LIMIT));
+      return true;
+    },
+    [prefs.confirmDanger, showToast]
+  );
+
+  const toggleFavorite = useCallback(
+    (id) => {
+      const update = () =>
+        setFavorites((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+      // In the Favorites view the card leaves the list, so let the rest close the gap.
+      if (category === 'Favorites') withViewTransition(() => flushSync(update));
+      else update();
+    },
+    [category]
+  );
+
+  const chooseOS = (distro) => {
+    setOsChoice(distro);
+    writeString(OS_KEY, distro);
+  };
+
+  const resetOS = () => {
+    setOsChoice(null);
+    removeKey(OS_KEY);
+  };
+
+  const answerConsent = (value) => {
+    persistConsent(value);
+    setConsent(value);
+  };
+
+  const setPref = (key, value) => setPrefs((current) => sanitizePreferences({ ...current, [key]: value }));
+
+  const exportData = () => {
+    const payload = {
+      app: 'cmddeck',
+      format: 1,
+      exportedAt: new Date().toISOString(),
+      favorites,
+      recent,
+      workflowProgress: progress,
+      preferences: prefs,
+      distro: osChoice,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cmddeck-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const importData = async (file) => {
+    try {
+      const data = JSON.parse(await file.text());
+      if (data?.app !== 'cmddeck') return { tone: 'error', text: 'That file isn’t a CmdDeck export.' };
+      const known = (ids) => (Array.isArray(ids) ? ids.filter((id) => snippetsById.has(id)) : []);
+      const newFavorites = known(data.favorites).filter((id) => !favorites.includes(id));
+      setFavorites((current) => [...current, ...newFavorites]);
+      setRecent((current) => [...new Set([...known(data.recent), ...current])].slice(0, RECENT_LIMIT));
+      setProgress((current) => mergeProgress(current, data.workflowProgress));
+      if (data.preferences) setPrefs(sanitizePreferences(data.preferences));
+      if (DISTROS.includes(data.distro)) chooseOS(data.distro);
+      return {
+        tone: 'success',
+        text: `Imported. ${newFavorites.length} new favorite${newFavorites.length === 1 ? '' : 's'}, settings and progress merged.`,
+      };
+    } catch {
+      return { tone: 'error', text: 'Couldn’t read that file. Choose a JSON file exported from CmdDeck.' };
+    }
+  };
+
+  const clearData = (kind) => {
+    if (kind === 'recent' || kind === 'all') setRecent([]);
+    if (kind === 'favorites' || kind === 'all') setFavorites([]);
+    if (kind === 'progress' || kind === 'all') setProgress({});
+    if (kind === 'all') {
+      setPrefs({ ...DEFAULT_PREFERENCES });
+      resetOS();
+    }
+    const labels = { recent: 'Recent commands cleared', favorites: 'Favorites removed', progress: 'Workflow progress reset', all: 'Everything reset' };
+    showToast(labels[kind]);
+  };
+
+  const favoriteSnippets = useMemo(() => favorites.map((id) => snippetsById.get(id)).filter(Boolean), [favorites]);
+  const recentSnippets = useMemo(() => recent.map((id) => snippetsById.get(id)).filter(Boolean), [recent]);
+  const favoriteSet = useMemo(() => new Set(favorites), [favorites]);
+
+  const counts = useMemo(() => {
+    const result = { All: allSnippets.length, Favorites: favoriteSnippets.length, Recent: recentSnippets.length };
+    for (const name of dataCategories) result[name] = 0;
+    for (const snippet of allSnippets) result[snippet.category] += 1;
+    return result;
+  }, [favoriteSnippets, recentSnippets]);
+
+  const terms = useMemo(() => queryTerms(query), [query]);
+  const inCategory = useMemo(() => {
+    if (category === 'All') return allSnippets;
+    if (category === 'Favorites') return favoriteSnippets;
+    if (category === 'Recent') return recentSnippets;
+    return allSnippets.filter((snippet) => snippet.category === category);
+  }, [category, favoriteSnippets, recentSnippets]);
+  const visible = useMemo(() => inCategory.filter((snippet) => matches(snippet, terms)), [inCategory, terms]);
+
+  const searching = terms.length > 0;
+  const showCategory = SPECIAL.includes(category);
+  const categoryLabel = category === 'All' ? 'All commands' : category;
+  const countLabel = searching
+    ? `${visible.length} of ${inCategory.length} ${inCategory.length === 1 ? 'command' : 'commands'}`
+    : `${inCategory.length} ${inCategory.length === 1 ? 'command' : 'commands'}`;
+  const stats = {
+    favorites: favoriteSnippets.length,
+    recent: recentSnippets.length,
+    workflows: Object.values(progress).filter((steps) => steps.length > 0).length,
+  };
 
   return (
-    <div className="bg-[#0D1117] min-h-screen font-mono text-gray-300">
-      {/* Toast Notification */}
-      <Toast message={toastMessage} isVisible={showToast} />
+    <PreferencesContext.Provider value={prefs}>
+      <div className={`flex min-h-screen flex-col ${consent === null ? 'pb-48 sm:pb-32' : ''}`}>
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
+        >
+          Skip to commands
+        </a>
 
-      {/* Workflows Modal */}
-      <WorkflowsModal
-        isOpen={workflowsOpen}
-        onClose={() => {
-          setWorkflowsOpen(false);
-          setSelectedWorkflow(null);
-        }}
-        workflows={workflows}
-        selectedWorkflow={selectedWorkflow}
-        onSelectWorkflow={setSelectedWorkflow}
-        onCopyStep={handleCopy}
-        copiedCommand={copiedCommand}
-      />
+        <header className="sticky top-0 z-20 border-b border-line-muted bg-canvas">
+          <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
+            <a
+              href="./"
+              onClick={(event) => {
+                event.preventDefault();
+                selectCategory('All');
+                if (query) changeQuery('');
+              }}
+              className="shrink-0 rounded font-mono text-lg font-bold tracking-tight text-accent"
+              aria-label="CmdDeck, show all commands"
+            >
+              <span className="text-fg-muted">&gt;</span> CmdDeck
+              <span className="blinking-cursor" aria-hidden="true">
+                _
+              </span>
+            </a>
+            <p className="hidden truncate text-sm text-fg-subtle xl:block">Your deck of ready-to-use Linux commands</p>
 
-      {/* Command Palette */}
-      <CommandPalette
-        isOpen={commandPaletteOpen}
-        onClose={() => {
-          setCommandPaletteOpen(false);
-          setPaletteSearch('');
-        }}
-        snippets={paletteSnippets}
-        onSelect={handlePaletteSelect}
-        searchValue={paletteSearch}
-        onSearchChange={setPaletteSearch}
-      />
-      
-      <div className="max-w-7xl mx-auto">
-        
-      {/* Header */}
-        <header className="text-center mb-6 sm:mb-10 p-4 sm:p-8 pb-4">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-green-400">
-            <span className="text-gray-300">&gt;</span> CmdDeck
-            <BlinkingCursor />
-          </h1>
-          <p className="text-gray-500 mt-2 text-sm sm:text-base">Your deck of ready-to-use Linux commands.</p>
-          
-          {/* OS Selector */}
-          <div className="mt-4 flex items-center justify-center">
-            <div className="relative os-selector-container">
+            <div className="ml-auto flex items-center gap-2">
               <button
-                onClick={() => setShowOSSelector(!showOSSelector)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-700 rounded-md text-sm text-gray-400 hover:border-green-500/50 hover:text-green-400 transition-colors"
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                className="hidden h-9 w-60 items-center gap-2 rounded-lg border border-line bg-surface px-3 text-sm text-fg-subtle transition-colors hover:border-fg-subtle hover:text-fg-muted md:inline-flex"
               >
-                <Monitor size={16} />
-                <span>System: </span>
-                <span className={`font-semibold ${detectedOS === 'not-linux' ? 'text-yellow-400' : 'text-green-400'}`}>
-                  {detectedOS === 'ubuntu' ? 'Ubuntu/Debian' :
-                   detectedOS === 'fedora' ? 'Fedora/RHEL' :
-                   detectedOS === 'arch' ? 'Arch Linux' :
-                   detectedOS === 'not-linux' ? 'Not on Linux - Select target' :
-                   'Generic Linux'}
+                <SearchIcon size={15} aria-hidden="true" />
+                <span className="flex-1 text-left">Quick copy…</span>
+                <span className="flex items-center gap-1" aria-hidden="true">
+                  <Kbd>{modKeyLabel()}</Kbd>
+                  <Kbd>K</Kbd>
                 </span>
-                <span className="text-gray-600">▼</span>
               </button>
-              
-              {showOSSelector && (
-                <div className="absolute top-full mt-2 left-0 right-0 bg-gray-900 border border-gray-700 rounded-md shadow-xl z-50 min-w-[220px]">
-                  <button
-                    onClick={() => handleOSChange('ubuntu')}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 border-b border-gray-800 ${
-                      detectedOS === 'ubuntu' ? 'text-orange-400 bg-orange-500/10' : 'text-gray-400'
-                    }`}
-                  >
-                    <UbuntuLogo size={16} />
-                    Ubuntu/Debian
-                  </button>
-                  <button
-                    onClick={() => handleOSChange('fedora')}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 border-b border-gray-800 ${
-                      detectedOS === 'fedora' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-400'
-                    }`}
-                  >
-                    <FedoraLogo size={16} />
-                    Fedora/RHEL
-                  </button>
-                  <button
-                    onClick={() => handleOSChange('arch')}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 border-b border-gray-800 ${
-                      detectedOS === 'arch' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-400'
-                    }`}
-                  >
-                    <ArchLogo size={16} />
-                    Arch Linux
-                  </button>
-                  <button
-                    onClick={() => handleOSChange('generic')}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-800 transition-colors flex items-center gap-2 ${
-                      detectedOS === 'generic' ? 'text-green-400 bg-green-500/10' : 'text-gray-400'
-                    }`}
-                  >
-                    <Terminal size={16} />
-                    Generic Linux
-                  </button>
-                </div>
-              )}
+              <OSSelector selected={selectedOS} detected={detected} onSelect={chooseOS} />
+              <button
+                type="button"
+                onClick={() => setWorkflowsOpen(true)}
+                aria-label="Workflows"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-line px-2.5 text-sm text-fg transition-colors hover:border-fg-subtle"
+              >
+                <WorkflowIcon size={16} aria-hidden="true" className="text-fg-muted" />
+                <span className="hidden sm:inline">Workflows</span>
+              </button>
+              <button
+                ref={settingsButtonRef}
+                type="button"
+                onClick={() => openSettings('system')}
+                aria-label="Settings"
+                title="Settings"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-fg-muted transition-colors hover:border-fg-subtle hover:text-fg"
+              >
+                <SettingsIcon size={16} aria-hidden="true" />
+              </button>
             </div>
           </div>
-          
-          {/* Action Buttons */}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => setCommandPaletteOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-700 rounded-md text-sm text-gray-400 hover:border-green-500/50 hover:text-green-400 transition-colors"
-            >
-              <CommandIcon size={16} />
-              <span className="hidden sm:inline">Quick search</span>
-              <kbd className="px-2 py-1 bg-gray-800 rounded text-xs">Ctrl+K</kbd>
-              <span className="hidden sm:inline">or</span>
-              <kbd className="px-2 py-1 bg-gray-800 rounded text-xs">/</kbd>
-            </button>
-            
-            <button
-              onClick={() => {
-                setWorkflowsOpen(true);
-                if (workflows.length > 0) {
-                  setSelectedWorkflow(workflows[0]);
-                }
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-700 rounded-md text-sm text-gray-400 hover:border-blue-500/50 hover:text-blue-400 transition-colors"
-            >
-              <FileStack size={16} />
-              <span>Workflows</span>
-              <span className="hidden sm:inline text-xs text-gray-600">({workflows.length} guides)</span>
-            </button>
-        </div>
-      </header>
+        </header>
 
-        {/* Mobile Category Selector */}
-        <div className="md:hidden px-4 mb-4">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-md p-3 text-left flex items-center justify-between"
-          >
-            <span className="flex items-center">
-              {React.createElement(categoryIcons[selectedCategory], { 
-                className: "mr-2", 
-                size: 16 
-              })}
-              <span className={`font-semibold ${
-                selectedCategory.includes('Ubuntu') ? 'text-orange-400' :
-                selectedCategory.includes('Fedora') ? 'text-blue-400' :
-                'text-green-400'
-              }`}>
-                {selectedCategory}
-              </span>
-            </span>
-            <span className="text-gray-500">
-              {mobileMenuOpen ? '▲' : '▼'}
-            </span>
-          </button>
-          
-          {/* Mobile Category Menu */}
-          {mobileMenuOpen && (
-            <div className="mt-2 bg-gray-900 border border-gray-700 rounded-md overflow-hidden">
-              {categories.map(category => {
-                const IconComponent = categoryIcons[category];
-                const isUbuntu = category.includes('Ubuntu');
-                const isFedora = category.includes('Fedora');
-                
-                return (
-                <button
-                    key={category}
-                  onClick={() => {
-                      setSelectedCategory(category);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left p-3 flex items-center transition-colors border-b border-gray-800 last:border-b-0 ${
-                      selectedCategory === category
-                        ? isUbuntu 
-                          ? 'bg-orange-500/20 text-orange-300 font-bold'
-                          : isFedora
-                          ? 'bg-blue-500/20 text-blue-300 font-bold'
-                          : 'bg-green-500/20 text-green-300 font-bold'
-                        : 'hover:bg-gray-800 text-gray-400'
-                    }`}
-                  >
-                    <IconComponent className="mr-2 flex-shrink-0" size={16} />
-                    <span className="flex-1">{category}</span>
-                    <span className="text-xs opacity-60">
-                      ({getCategoryCount(category)})
-                    </span>
-                </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 px-4 sm:px-8">
-          {/* Desktop Sidebar Categories */}
-          <aside className="hidden md:block md:w-1/5">
-            <h2 className="text-lg font-semibold text-gray-400 mb-4">CATEGORIES</h2>
-            <nav className="flex flex-col gap-2">
-              {categories.map(category => {
-                const IconComponent = categoryIcons[category];
-                const isDistroSpecific = category.includes('Specific');
-                const isUbuntu = category.includes('Ubuntu');
-                const isFedora = category.includes('Fedora');
-                
-                return (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`w-full text-left p-3 rounded-md text-sm transition-colors flex items-center ${
-                      selectedCategory === category
-                        ? isUbuntu 
-                          ? 'bg-orange-500/20 text-orange-300 font-bold border border-orange-500/50'
-                          : isFedora
-                          ? 'bg-blue-500/20 text-blue-300 font-bold border border-blue-500/50'
-                          : 'bg-green-500/20 text-green-300 font-bold border border-green-500/50'
-                        : isDistroSpecific
-                        ? 'hover:bg-gray-800 text-gray-500 border border-transparent'
-                        : 'hover:bg-gray-800 text-gray-400 border border-transparent'
-                    }`}
-                  >
-                    <IconComponent className="mr-2 flex-shrink-0" size={16} />
-                    <span className="flex-1">{category}</span>
-                    <span className="text-xs opacity-60 ml-2">
-                      ({getCategoryCount(category)})
-                    </span>
-                  </button>
-                );
-              })}
-              </nav>
+        <div className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 sm:px-6">
+          <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto py-6 pr-1 md:block">
+            <CategorySidebar selected={category} counts={counts} onSelect={selectCategory} />
           </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 pb-8">
-            {/* Category Header - Hidden on mobile (shown in dropdown) */}
-            <div className="hidden md:block mb-6">
-              <h2 className={`text-2xl font-bold mb-2 flex items-center ${
-                selectedCategory.includes('Ubuntu') 
-                  ? 'text-orange-400' 
-                  : selectedCategory.includes('Fedora')
-                  ? 'text-blue-400'
-                  : 'text-green-400'
-              }`}>
-                {React.createElement(categoryIcons[selectedCategory], { 
-                  className: "mr-3", 
-                  size: 28 
-                })}
-                {selectedCategory}
-              </h2>
-              <p className="text-gray-500 text-sm mb-4">
-                {filteredSnippets.length} command{filteredSnippets.length !== 1 ? 's' : ''} available
-              </p>
+          <main id="main" className="min-w-0 flex-1 pb-12 pt-5 md:pt-6">
+            <div className="mb-4 md:hidden">
+              <CategorySelect selected={category} counts={counts} onSelect={selectCategory} />
             </div>
 
-            {/* Search Bar */}
-            <div className="mb-4 sm:mb-6">
-              <input
-                type="text"
-                placeholder={`Search in ${selectedCategory}...`}
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-md p-3 text-sm sm:text-base text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-              />
-              </div>
-            
-            {/* Results count on mobile */}
-            <div className="md:hidden mb-4 text-gray-500 text-xs">
-              {filteredSnippets.length} command{filteredSnippets.length !== 1 ? 's' : ''} available
-                    </div>
-
-            {/* Snippet Grid */}
-            {filteredSnippets.length > 0 ? (
-                <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {displayedSnippets.map(snippet => {
-                  // Use PackageManagementCard for commands with variants
-                  if (snippet.variants) {
-                    const commandForCheck = snippet.variants.ubuntu || snippet.command;
-                    return (
-                      <PackageManagementCard 
-                        key={commandForCheck} 
-                        snippet={snippet}
-                        onCopy={handleCopy}
-                        isCopied={copiedCommand === (snippet.variants?.[getCommandOS()] || snippet.variants?.ubuntu || snippet.command)}
-                        onToggleFavorite={toggleFavorite}
-                        isFavorite={favorites.includes(commandForCheck)}
-                        showCategory={['All', 'Favorites', 'Recent'].includes(selectedCategory)}
-                        detectedOS={getCommandOS()}
-                      />
-                    );
-                  }
-                  
-                  // Use regular SnippetCard for normal commands
-                  return (
-                    <SnippetCard 
-                      key={snippet.command} 
-                      snippet={snippet}
-                      onCopy={handleCopy}
-                      isCopied={copiedCommand === snippet.command}
-                      onToggleFavorite={toggleFavorite}
-                      isFavorite={favorites.includes(snippet.command)}
-                      showCategory={['All', 'Favorites', 'Recent'].includes(selectedCategory)}
-                    />
-                  );
-                })}
-                    </div>
-
-                {/* Load More Button */}
-                {hasMore && (
-                  <div className="mt-8 text-center">
-                    <button
-                      onClick={() => setDisplayLimit(prev => prev + 20)}
-                      className="px-6 py-3 bg-gray-900 border border-gray-700 rounded-md text-sm text-gray-400 hover:border-green-500/50 hover:text-green-400 transition-colors inline-flex items-center gap-2"
-                    >
-                      Load More 
-                      <span className="text-xs text-gray-600">
-                        ({displayLimit} of {filteredSnippets.length})
-                        </span>
-                    </button>
-                  </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h1
+                style={{ viewTransitionName: 'page-title' }}
+                className="sr-only md:not-sr-only md:text-2xl md:font-semibold md:tracking-tight md:text-fg"
+              >
+                {categoryLabel}
+              </h1>
+              <div className="flex items-center gap-3">
+                <p className="text-sm tabular-nums text-fg-subtle" aria-live="polite">
+                  {countLabel}
+                </p>
+                {category === 'Recent' && recentSnippets.length > 0 && !searching && (
+                  <button
+                    type="button"
+                    onClick={() => withViewTransition(() => flushSync(() => setRecent([])))}
+                    className="rounded text-sm text-fg-subtle underline-offset-4 transition-colors hover:text-fg hover:underline"
+                  >
+                    Clear history
+                  </button>
                 )}
-                </>
-            ) : (
-                <div className="text-center text-gray-500 p-6 sm:p-10 border-2 border-dashed border-gray-700 rounded-lg">
-                    <p className="text-sm sm:text-base">
-                      {selectedCategory === 'Favorites' ? 'No favorites yet.' :
-                       selectedCategory === 'Recent' ? 'No recent commands.' :
-                       'No commands found.'}
-                    </p>
-                    <p className="text-xs sm:text-sm mt-2">
-                      {selectedCategory === 'Favorites' ? 'Star commands to add them to favorites!' :
-                       selectedCategory === 'Recent' ? 'Copy some commands to see them here.' :
-                       'Try modifying your search or changing category.'}
-                    </p>
               </div>
+            </div>
+
+            <div className="relative mt-3 md:mt-4">
+              <SearchIcon
+                size={17}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle"
+              />
+              <input
+                ref={searchRef}
+                type="text"
+                inputMode="search"
+                enterKeyHint="search"
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck="false"
+                aria-label={`Filter ${categoryLabel}`}
+                placeholder={`Filter ${category === 'All' ? 'commands' : category}…`}
+                value={query}
+                onChange={(event) => changeQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && query) {
+                    event.preventDefault();
+                    changeQuery('');
+                  }
+                }}
+                className="h-11 w-full rounded-lg border border-line bg-surface pl-10 pr-10 text-[0.9375rem] text-fg placeholder:text-fg-subtle focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/25"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    changeQuery('', { animate: true });
+                    searchRef.current?.focus();
+                  }}
+                  aria-label="Clear filter"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-fg-subtle transition-colors hover:bg-surface-raised hover:text-fg"
+                >
+                  <CloseIcon size={16} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {visible.length > 0 ? (
+              <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {visible.map((snippet, index) => (
+                  <CommandCard
+                    key={snippet.id}
+                    transitionName={index < MORPHING_CARDS ? transitionNameFor(snippet.id) : undefined}
+                    snippet={snippet}
+                    os={matchingDistro(snippet, terms, commandOS)}
+                    showCategory={showCategory}
+                    isFavorite={favoriteSet.has(snippet.id)}
+                    onToggleFavorite={toggleFavorite}
+                    copiedKey={copiedKey}
+                    onCopy={handleCopy}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                category={category}
+                query={query}
+                searching={searching}
+                onClearQuery={() => changeQuery('', { animate: true })}
+                onSearchAll={() => selectCategory('All')}
+              />
             )}
           </main>
         </div>
 
+        <SiteFooter
+          onAbout={() => openSettings('about')}
+          onSettings={() => openSettings('system')}
+          onPrivacy={() => setLegalDoc('privacy')}
+          onCookies={() => setLegalDoc('cookies')}
+        />
+
+        <CookieConsent
+          open={consent === null}
+          onAccept={() => answerConsent('accepted')}
+          onDecline={() => answerConsent('declined')}
+          onLearnMore={() => setLegalDoc('cookies')}
+        />
+
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          snippets={allSnippets}
+          recentIds={recent}
+          os={commandOS}
+          onCopy={handleCopy}
+          showHints={hasKeyboard}
+        />
+        <WorkflowsDialog
+          open={workflowsOpen}
+          onClose={() => setWorkflowsOpen(false)}
+          workflows={workflows}
+          copiedKey={copiedKey}
+          onCopy={handleCopy}
+          progress={progress}
+          setProgress={setProgress}
+        />
+        <SettingsDialog
+          section={settingsSection}
+          onSectionChange={openSettings}
+          onClose={() => openSettings(null)}
+          prefs={prefs}
+          setPref={setPref}
+          systemReduced={systemReduced}
+          selectedOS={selectedOS}
+          detected={detected}
+          osIsChosen={osChoice !== null}
+          onChooseOS={chooseOS}
+          onResetOS={resetOS}
+          stats={stats}
+          onExport={exportData}
+          onImport={importData}
+          onClear={clearData}
+          consent={consent}
+          onConsentChange={answerConsent}
+          onOpenLegal={setLegalDoc}
+          commandCount={allSnippets.length}
+          workflowCount={workflows.length}
+        />
+        <ConfirmDialog
+          open={confirm.open}
+          title={`Copy “${confirm.snippet?.title ?? ''}”?`}
+          body="This command is marked Danger: it can delete data or change your system with no undo."
+          detail={confirm.text}
+          confirmLabel="Copy anyway"
+          onConfirm={() => closeConfirm(true)}
+          onCancel={() => closeConfirm(false)}
+        />
+        <LegalDialog document={legalDoc} onClose={() => setLegalDoc(null)} />
+        <Toast toast={toast} />
       </div>
+    </PreferencesContext.Provider>
+  );
+}
 
-      {/* Footer Menu */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 footer-menu-container">
-        {/* Menu Dropdown */}
-        {footerMenuOpen && (
-          <div className="absolute bottom-full right-0 mb-2 bg-gray-900/95 backdrop-blur-sm border border-green-500/30 rounded-lg shadow-2xl overflow-hidden min-w-[180px]">
+function EmptyState({ category, query, searching, onClearQuery, onSearchAll }) {
+  let Icon = SearchIcon;
+  let title = `No commands match “${query.trim()}”`;
+  let body = category === 'All' ? 'Try another word, or describe the task, like “free space”.' : `Nothing in ${category} matches.`;
+
+  if (!searching && category === 'Favorites') {
+    Icon = StarIcon;
+    title = 'No favorites yet';
+    body = 'Tap the star on any command to keep it here.';
+  } else if (!searching && category === 'Recent') {
+    Icon = RecentIcon;
+    title = 'Nothing copied yet';
+    body = 'Commands you copy show up here, most recent first.';
+  }
+
+  return (
+    <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-line px-6 py-14 text-center">
+      <Icon size={22} aria-hidden="true" className="text-fg-subtle" />
+      <p className="mt-3 font-medium text-fg">{title}</p>
+      <p className="mt-1 max-w-sm text-sm text-fg-muted">{body}</p>
+      {searching && (
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {category !== 'All' && (
             <button
-              onClick={() => {
-                setInfoModalOpen(true);
-                setFooterMenuOpen(false);
-              }}
-              className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-800 hover:text-green-400 transition-colors flex items-center gap-2 text-sm"
+              type="button"
+              onClick={onSearchAll}
+              className="h-9 rounded-md border border-line bg-surface-raised px-3.5 text-sm font-medium text-fg transition-colors hover:border-fg-subtle"
             >
-              <Info size={16} />
-              About
+              Search all categories
             </button>
-            <button
-              onClick={() => {
-                setPrivacyModalOpen(true);
-                setFooterMenuOpen(false);
-              }}
-              className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-800 hover:text-green-400 transition-colors flex items-center gap-2 text-sm border-t border-gray-800"
-            >
-              <Shield size={16} />
-              Privacy Policy
-            </button>
-            <button
-              onClick={() => {
-                setCookiePolicyModalOpen(true);
-                setFooterMenuOpen(false);
-              }}
-              className="w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-800 hover:text-green-400 transition-colors flex items-center gap-2 text-sm border-t border-gray-800"
-            >
-              <Cookie size={16} />
-              Cookie Policy
-            </button>
-          </div>
-        )}
-
-        {/* Menu Toggle Button */}
-        <button
-          onClick={() => setFooterMenuOpen(!footerMenuOpen)}
-          className="p-2 sm:p-2.5 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-md text-gray-400 hover:text-green-400 hover:border-green-500/50 transition-colors"
-          title="Menu"
-        >
-          <Menu size={18} className="sm:w-5 sm:h-5" />
-        </button>
-      </div>
-
-      {/* Modals */}
-      <InfoModal 
-        isOpen={infoModalOpen}
-        onClose={() => setInfoModalOpen(false)}
-        totalCommands={allSnippets.length}
-      />
-      <PrivacyPolicyModal
-        isOpen={privacyModalOpen}
-        onClose={() => setPrivacyModalOpen(false)}
-      />
-      <CookiePolicyModal
-        isOpen={cookiePolicyModalOpen}
-        onClose={() => setCookiePolicyModalOpen(false)}
-      />
-
-      {/* Cookie Consent Banner */}
-      <CookieConsent
-        isVisible={cookieConsentVisible}
-        onAccept={handleCookieAccept}
-        onDecline={handleCookieDecline}
-      />
+          )}
+          <button
+            type="button"
+            onClick={onClearQuery}
+            className="h-9 rounded-md px-3.5 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
     </div>
   );
 }

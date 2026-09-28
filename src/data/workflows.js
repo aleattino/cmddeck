@@ -1,3 +1,6 @@
+// Steps can reference parameters as {{key}}. Values are typed once in the
+// workflow and shell-quoted into every step. A parameter without `default`
+// is required; `pattern` rejects values that would break the command.
 export const workflows = [
   {
     id: "debug-port-in-use",
@@ -5,31 +8,37 @@ export const workflows = [
     description: "Find and resolve 'port already in use' errors when starting applications",
     icon: "AlertCircle",
     difficulty: "beginner",
+    params: [
+      { key: "port", numeric: true, label: "Port", default: "3000", pattern: /^\d{1,5}$/, invalid: "Use a port number, like 8080", hint: "The port your app can't use" },
+      { key: "pid", numeric: true, label: "Process ID (PID)", example: "12345", pattern: /^\d+$/, invalid: "Use the number from the PID column", hint: "From the PID column of step 1" }
+    ],
     steps: [
       {
         title: "Find process using the port",
-        command: "sudo lsof -i :3000",
-        description: "Shows which process is using port 3000 (change number as needed). Look for the PID column."
+        command: "sudo lsof -i :{{port}}",
+        description: "Shows which process is using the port. Copy the number in the PID column into Process ID above."
       },
       {
         title: "Get detailed process info",
-        command: "ps aux | grep <PID>",
-        description: "Replace <PID> with the process ID from previous step to see what's running"
+        command: "ps -fp {{pid}}",
+        description: "Shows who started the process, when, and the full command, so you know what you're about to stop"
       },
       {
         title: "Kill the process gracefully",
-        command: "kill <PID>",
-        description: "Sends termination signal to the process. Replace <PID> with actual process ID."
+        command: "kill {{pid}}",
+        dangerLevel: "caution",
+        description: "Asks the process to shut down, giving it time to save and clean up"
       },
       {
         title: "Force kill if needed",
-        command: "kill -9 <PID>",
-        description: "Only if graceful kill didn't work. Forces immediate termination."
+        command: "kill -9 {{pid}}",
+        dangerLevel: "caution",
+        description: "Only if the graceful kill didn't work. Forces immediate termination."
       },
       {
         title: "Verify port is free",
-        command: "sudo lsof -i :3000",
-        description: "Should return nothing if port is now available"
+        command: "sudo lsof -i :{{port}}",
+        description: "Should print nothing if the port is now available"
       }
     ]
   },
@@ -39,6 +48,9 @@ export const workflows = [
     description: "Recover from common Git mistakes and save your work",
     icon: "Save",
     difficulty: "intermediate",
+    params: [
+      { key: "message", label: "Stash note", default: "emergency backup", hint: "Helps you find this stash later" }
+    ],
     steps: [
       {
         title: "Check current status",
@@ -52,12 +64,13 @@ export const workflows = [
       },
       {
         title: "Stash uncommitted changes",
-        command: "git stash save 'emergency backup'",
+        command: "git stash push -m {{message}}",
         description: "Saves all your changes temporarily. They're not lost!"
       },
       {
         title: "Undo last commit (keep changes)",
         command: "git reset --soft HEAD~1",
+        dangerLevel: "caution",
         description: "Moves back one commit but keeps your file changes staged"
       },
       {
@@ -78,6 +91,11 @@ export const workflows = [
     description: "Initial configuration for a fresh Linux server with security basics",
     icon: "Lock",
     difficulty: "intermediate",
+    params: [
+      { key: "user", label: "Admin username", example: "deploy", pattern: /^[a-z_][a-z0-9_-]{0,31}$/, invalid: "Lowercase letters, digits, - and _; start with a letter", hint: "The account you'll log in with instead of root" },
+      { key: "sshPort", numeric: true, label: "SSH port", default: "22", pattern: /^\d{1,5}$/, invalid: "Use a port number, like 22", hint: "Change it only if SSH listens elsewhere" },
+      { key: "timezone", label: "Timezone", example: "Europe/Rome", pattern: /^[A-Za-z]+(?:[/_+-][A-Za-z0-9]+)*$/, invalid: "Use a name like Europe/Rome or UTC", hint: "List them with timedatectl list-timezones" }
+    ],
     steps: [
       {
         title: "Update system packages",
@@ -86,8 +104,8 @@ export const workflows = [
       },
       {
         title: "Create new admin user",
-        command: "sudo adduser adminuser && sudo usermod -aG sudo adminuser",
-        description: "Creates new user and adds to sudo group for admin privileges"
+        command: "sudo adduser {{user}} && sudo usermod -aG sudo {{user}}",
+        description: "Creates the user and adds it to the sudo group for admin privileges"
       },
       {
         title: "Install essential tools",
@@ -101,23 +119,25 @@ export const workflows = [
       },
       {
         title: "Allow SSH through firewall",
-        command: "sudo ufw allow 22/tcp",
-        description: "Opens SSH port so you can still connect remotely"
+        command: "sudo ufw allow {{sshPort}}/tcp",
+        description: "Opens the SSH port so you can still connect remotely"
       },
       {
         title: "Enable firewall",
         command: "sudo ufw enable",
+        dangerLevel: "caution",
         description: "Activates the firewall with your rules"
       },
       {
         title: "Disable root SSH login",
-        command: "sudo sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl restart sshd",
-        description: "Prevents direct root login via SSH for security"
+        command: "sudo sed -i -E 's/^#?PermitRootLogin .*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl restart ssh",
+        description: "Prevents direct root login via SSH. Before running it, confirm you can log in as the new admin user in a second session.",
+        dangerLevel: "caution"
       },
       {
         title: "Set timezone",
-        command: "sudo timedatectl set-timezone America/New_York",
-        description: "Sets server timezone (change as needed)"
+        command: "sudo timedatectl set-timezone {{timezone}}",
+        description: "Sets the server clock's timezone"
       }
     ]
   },
@@ -127,6 +147,9 @@ export const workflows = [
     description: "Diagnose and resolve common network connectivity issues",
     icon: "Globe",
     difficulty: "beginner",
+    params: [
+      { key: "host", label: "Website to test", default: "google.com", pattern: /^[A-Za-z0-9.-]+$/, invalid: "Use a domain name, like example.com", hint: "Try the site that isn't loading" }
+    ],
     steps: [
       {
         title: "Test internet connectivity",
@@ -135,7 +158,7 @@ export const workflows = [
       },
       {
         title: "Test DNS resolution",
-        command: "nslookup google.com",
+        command: "nslookup {{host}}",
         description: "Checks if domain names are resolving. If this fails but ping worked, DNS is the issue"
       },
       {
@@ -155,7 +178,7 @@ export const workflows = [
       },
       {
         title: "Trace network path",
-        command: "traceroute google.com",
+        command: "traceroute {{host}}",
         description: "Shows the route packets take. Useful to find where connection breaks"
       },
       {
@@ -169,22 +192,30 @@ export const workflows = [
     id: "backup-system",
     title: "Backup System Configuration",
     description: "Complete backup of important system files and configurations",
-    icon: "Save",
+    icon: "Archive",
     difficulty: "beginner",
+    params: [
+      { key: "dir", label: "Backup folder", default: "/backup", pattern: /^[~/]/, invalid: "Use an absolute path, like /backup or /mnt/usb", hint: "Keep it outside your home folder, or the home backup would include itself" }
+    ],
     steps: [
       {
+        title: "Create the backup folder",
+        command: "sudo mkdir -p {{dir}} && sudo chown \"$USER\" {{dir}}",
+        description: "Creates the folder and makes it writable by your user, so the next steps can save into it"
+      },
+      {
         title: "Backup /etc directory",
-        command: "sudo tar -czvf /backup/etc-backup-$(date +%Y%m%d).tar.gz /etc",
+        command: "sudo tar -czvf {{dir}}/etc-backup-$(date +%Y%m%d).tar.gz /etc",
         description: "Creates timestamped backup of system configuration files"
       },
       {
         title: "Backup home directory",
-        command: "tar -czvf /backup/home-backup-$(date +%Y%m%d).tar.gz ~/",
-        description: "Backs up your entire home directory"
+        command: "tar -czvf {{dir}}/home-backup-$(date +%Y%m%d).tar.gz -C ~ .",
+        description: "Backs up your entire home directory, stored with paths relative to your home"
       },
       {
         title: "List installed packages (Ubuntu)",
-        command: "dpkg --get-selections > /backup/installed-packages.txt",
+        command: "dpkg --get-selections > {{dir}}/installed-packages.txt",
         description: "Saves list of installed packages for easy restore"
       }
     ]
@@ -195,6 +226,9 @@ export const workflows = [
     description: "Comprehensive disk cleanup to free up storage space",
     icon: "Trash2",
     difficulty: "beginner",
+    params: [
+      { key: "keep", label: "Keep logs for", default: "7d", pattern: /^\d+(?:s|m|h|d|weeks?|months?|years?)$/, invalid: "Use a duration like 7d, 2weeks or 1month", hint: "Older journal entries are deleted" }
+    ],
     steps: [
       {
         title: "Check current disk usage",
@@ -218,11 +252,12 @@ export const workflows = [
       },
       {
         title: "Clean old journal logs",
-        command: "sudo journalctl --vacuum-time=7d",
-        description: "Keeps only last 7 days of system logs"
+        command: "sudo journalctl --vacuum-time={{keep}}",
+        description: "Deletes system logs older than the duration you chose"
       },
       {
         title: "Remove old snap versions",
+        dangerLevel: "caution",
         command: "sudo snap list --all | awk '/disabled/{print $1, $3}' | while read snapname revision; do sudo snap remove \"$snapname\" --revision=\"$revision\"; done",
         description: "Removes old snap package versions (Ubuntu)"
       },
@@ -234,6 +269,7 @@ export const workflows = [
       {
         title: "Empty trash",
         command: "rm -rf ~/.local/share/Trash/*",
+        dangerLevel: "danger",
         description: "Empties your user trash folder"
       },
       {
@@ -257,8 +293,9 @@ export const workflows = [
     steps: [
       {
         title: "Stop all containers",
-        command: "docker stop $(docker ps -aq)",
-        description: "Stops all running Docker containers"
+        command: "docker ps -q | xargs -r docker stop",
+        description: "Stops all running Docker containers (does nothing if none are running)",
+        dangerLevel: "caution"
       },
       {
         title: "Remove stopped containers",
@@ -268,12 +305,14 @@ export const workflows = [
       {
         title: "Remove unused images",
         command: "docker image prune -a -f",
-        description: "Removes all unused images"
+        description: "Removes every image not used by a container. They'll need to be pulled again later",
+        dangerLevel: "caution"
       },
       {
         title: "Remove unused volumes",
         command: "docker volume prune -f",
-        description: "Cleans up unused Docker volumes"
+        description: "Deletes volumes not attached to a container, including any data stored in them",
+        dangerLevel: "danger"
       },
       {
         title: "Show disk usage",
@@ -317,6 +356,3 @@ export const workflows = [
     ]
   }
 ];
-
-
-

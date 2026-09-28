@@ -1,0 +1,11 @@
+<!-- Full-bleed app tile: apple-touch-icon, PWA icons (maskable-safe), favicon.ico -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0D1117"/>
+  <g transform="translate(106 106) scale(9.375)">
+    <rect x="10" y="1" width="21" height="21" rx="5" fill="#22C55E"/>
+    <rect x="0.5" y="7.5" width="24.5" height="24" rx="6.5" fill="#0D1117"/>
+    <rect x="2.75" y="9.75" width="20" height="19.5" rx="4.25" fill="none" stroke="#4ADE80" stroke-width="2.5"/>
+    <path d="M7.5 14.5 11.5 18.5 7.5 22.5" fill="none" stroke="#4ADE80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M13.75 22.5h4.75" fill="none" stroke="#4ADE80" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
