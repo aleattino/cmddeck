@@ -31,7 +31,7 @@ Search titles, descriptions, categories and every distro variant. The count show
 
 ### Quick copy
 
-Press `Ctrl+K` (`Cmd+K` on Mac) or `/`, type, and press Enter to copy. Recent commands come first.
+Press `Ctrl+K` on Linux and Windows, `⌘K` on Mac, or `/` anywhere; type, and press Enter to copy. The shortcut shown in the app matches your system. Recent commands come first.
 
 ![Quick copy palette searching for "extract"](docs/screenshots/04-quick-copy.webp)
 
@@ -145,7 +145,7 @@ Plus **Favorites** (your starred commands) and **Recent** (the last 12 you copie
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl + K` (`Cmd + K` on Mac) or `/` | Open the quick-copy palette |
+| `Ctrl + K` (`⌘ K` on Mac) or `/` | Open the quick-copy palette |
 | `↑` `↓` | Move through results |
 | `Enter` | Copy the selected command |
 | `Esc` | Close dialogs and menus, or clear the filter field |
