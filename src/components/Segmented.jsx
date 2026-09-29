@@ -1,11 +1,9 @@
 import { useRef } from 'react';
-import { useIndicator } from '../hooks/useIndicator';
+import { SelectionGlide } from './SelectionGlide';
 
 // Radio group drawn as a segmented control; the thumb slides between options.
 export function Segmented({ label, value, options, onChange, size = 'sm' }) {
-  const containerRef = useRef(null);
   const refs = useRef({});
-  const { box, animate } = useIndicator(containerRef, '[aria-checked="true"]', [value, options.length]);
 
   const onKeyDown = (event) => {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
@@ -21,19 +19,15 @@ export function Segmented({ label, value, options, onChange, size = 'sm' }) {
 
   return (
     <div
-      ref={containerRef}
       role="radiogroup"
       aria-label={label}
       onKeyDown={onKeyDown}
       className="relative inline-flex max-w-full flex-wrap rounded-lg border border-line-muted bg-surface-sunken p-0.5"
     >
-      {box && (
-        <span
-          aria-hidden="true"
-          className={`absolute left-0 top-0 rounded-md bg-surface-raised shadow-[0_1px_2px_rgba(0,0,0,0.45)] ${animate ? 'glide' : ''}`}
-          style={{ width: box.width, height: box.height, transform: `translate(${box.x}px, ${box.y}px)` }}
-        />
-      )}
+      <SelectionGlide
+        selector='[aria-checked="true"]'
+        className="rounded-md bg-surface-raised shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+      />
       {options.map((option) => {
         const checked = option.value === value;
         return (

@@ -1,22 +1,13 @@
-import { useId, useRef } from 'react';
+import { useId } from 'react';
 import { ChevronDownIcon } from './Icons';
 import { categoryGroups } from '../data';
 import { categoryIcons } from '../lib/categoryIcons';
-import { useIndicator } from '../hooks/useIndicator';
+import { SelectionGlide } from './SelectionGlide';
 
 export function CategorySidebar({ selected, counts, onSelect }) {
-  const navRef = useRef(null);
-  // One highlight glides to the current category instead of jumping.
-  const { box, animate } = useIndicator(navRef, '[aria-current="page"]', [selected]);
   return (
-    <nav ref={navRef} aria-label="Categories" className="relative">
-      {box && (
-        <span
-          aria-hidden="true"
-          className={`absolute left-0 top-0 rounded-lg bg-surface-raised ${animate ? 'glide' : ''}`}
-          style={{ width: box.width, height: box.height, transform: `translate(${box.x}px, ${box.y}px)` }}
-        />
-      )}
+    <nav aria-label="Categories" className="relative">
+      <SelectionGlide selector='[aria-current="page"]' className="rounded-lg bg-surface-raised" />
       {categoryGroups.map((group, index) => (
         <div key={group.label} className={index > 0 ? 'mt-6' : undefined}>
           <h2 className="mb-1.5 px-2.5 text-xs font-medium text-fg-subtle">{group.label}</h2>

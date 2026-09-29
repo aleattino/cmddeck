@@ -22,7 +22,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { shellArg } from '../lib/shell';
 import { paramStates, resolveCommand } from '../lib/workflow';
 import { ease, play, pop, reducedMotion } from '../lib/motion';
-import { useIndicator } from '../hooks/useIndicator';
+import { SelectionGlide } from './SelectionGlide';
 
 // Workflow data names its icon; these are the Adwaita glyphs behind each name.
 const ICONS = {
@@ -232,7 +232,6 @@ export function WorkflowsDialog({ open, onClose, workflows, copiedKey, onCopy, p
   const doneCount = (workflow) =>
     (progress[workflow.id] ?? []).filter((index) => index < workflow.steps.length).length;
   const hasStarted = done.length > 0 || Object.values(values).some((value) => value.trim() !== '');
-  const { box, animate } = useIndicator(listRef, '[aria-current="true"]', [selected?.id, showList, isWide]);
 
   return (
     <Modal open={open} onClose={onClose} labelledBy={titleId} className="max-w-5xl">
@@ -252,13 +251,7 @@ export function WorkflowsDialog({ open, onClose, workflows, copiedKey, onCopy, p
               aria-label="Workflows"
               className="relative min-h-0 overflow-y-auto border-line-muted p-2 md:border-r"
             >
-              {box && (
-                <span
-                  aria-hidden="true"
-                  className={`absolute left-0 top-0 rounded-lg bg-surface-raised ${animate ? 'glide' : ''}`}
-                  style={{ width: box.width, height: box.height, transform: `translate(${box.x}px, ${box.y}px)` }}
-                />
-              )}
+              <SelectionGlide selector='[aria-current="true"]' className="rounded-lg bg-surface-raised" />
               <ul className="space-y-0.5">
                 {workflows.map((workflow) => {
                   const Icon = ICONS[workflow.icon] ?? WorkflowIcon;

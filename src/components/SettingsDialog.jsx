@@ -5,7 +5,7 @@ import { Segmented } from './Segmented';
 import { Switch } from './Switch';
 import { Kbd } from './Kbd';
 import { DistroLogo } from './DistroLogo';
-import { useIndicator } from '../hooks/useIndicator';
+import { SelectionGlide } from './SelectionGlide';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { DISTROS, DISTRO_LABELS, modKeyLabel } from '../lib/os';
 import { ease, play, reducedMotion } from '../lib/motion';
@@ -395,7 +395,6 @@ export function SettingsDialog({ section, onSectionChange, onClose, ...props }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, mobileDetail]);
 
-  const { box, animate } = useIndicator(listRef, '[aria-current="page"]', [active, showList, isWide]);
   const current = SETTINGS_SECTIONS.find((item) => item.id === active);
 
   const select = (id) => {
@@ -410,13 +409,7 @@ export function SettingsDialog({ section, onSectionChange, onClose, ...props }) 
         <div className="grid min-h-0 flex-1 md:grid-cols-[13.5rem_1fr]">
           {showList && (
             <nav ref={listRef} aria-label="Settings sections" className="relative min-h-0 overflow-y-auto p-2 md:border-r md:border-line-muted">
-              {box && isWide && (
-                <span
-                  aria-hidden="true"
-                  className={`absolute left-0 top-0 rounded-lg bg-surface-raised ${animate ? 'glide' : ''}`}
-                  style={{ width: box.width, height: box.height, transform: `translate(${box.x}px, ${box.y}px)` }}
-                />
-              )}
+              <SelectionGlide selector='[aria-current="page"]' className="rounded-lg bg-surface-raised" />
               <ul className="space-y-0.5">
                 {SETTINGS_SECTIONS.map((item) => {
                   const isCurrent = isWide && item.id === active;
